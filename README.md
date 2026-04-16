@@ -1,6 +1,6 @@
 # SqlPulse User Guide
 
-**Version 1.8**  
+**Version 1.9**  
 Zakmu Technologies
 
 ---
@@ -17,11 +17,12 @@ Zakmu Technologies
 8. [Live Progress](#8-live-progress)
 9. [Test Results](#9-test-results)
 10. [Concurrency Sweep](#10-concurrency-sweep)
-11. [Test History](#11-test-history)
-12. [Comparing Runs](#12-comparing-runs)
-13. [Exporting Results](#13-exporting-results)
-14. [Settings & License](#14-settings--license)
-15. [Frequently Asked Questions](#15-frequently-asked-questions)
+11. [SP Performance Analyzer](#11-sp-performance-analyzer)
+12. [Test History](#12-test-history)
+13. [Comparing Runs](#13-comparing-runs)
+14. [Exporting Results](#14-exporting-results)
+15. [Settings & License](#15-settings--license)
+16. [Frequently Asked Questions](#16-frequently-asked-questions)
 
 ---
 
@@ -37,6 +38,7 @@ Unlike general-purpose load testing tools, SqlPulse speaks native SQL Server. Th
 - At what concurrency level does latency start to degrade?
 - Will this procedure hold up under peak traffic on release day?
 - Is the improvement after my index change measurable and consistent?
+- Why is this procedure slow — missing indexes, key lookups, implicit conversions, stale stats?
 
 ---
 
@@ -63,7 +65,7 @@ SqlPulse is organised into four main areas:
 ┌─────────────────────────────────────────────────────────────┐
 │  Header bar — app title, run status, update notifications   │
 ├──────────────┬──────────────────────────────────────────────┤
-│              │  Tabs: New Test │ Results │ ⚡ Sweep │ History│
+│              │  Tabs: New Test │ Results │ ⚡ Sweep │ History │ 🔍 Analyze │
 │   Server     ├──────────────────────────────────────────────┤
 │   Sidebar    │                                              │
 │              │            Main content area                 │
@@ -82,6 +84,7 @@ SqlPulse is organised into four main areas:
 | **Results tab** | View live progress during a run, and full results after |
 | **⚡ Sweep tab** | Run an automated concurrency sweep across multiple worker tiers |
 | **History tab** | Browse all past runs, compare results, re-run configurations |
+| **🔍 Analyze tab** | Diagnose a stored procedure's performance using SQL Server's internal signals |
 | **Status bar** | Always shows the currently active server and database |
 
 ---
@@ -390,7 +393,78 @@ One row per completed tier showing: Workers | Throughput | Avg | P50 | P95 | P99
 
 ---
 
-## 11. Test History
+## 11. SP Performance Analyzer
+
+The **🔍 Analyze** tab diagnoses a stored procedure's performance using SQL Server's own internal signals — execution plan cache, missing index recommendations, index usage statistics, wait events, and query-level hotspots. No stress test required.
+
+### Collection Modes
+
+| Mode | Description |
+|------|-------------|
+| **Static** | Reads cached DMV data only. Safe — the SP is never executed. Works any time the procedure has been run at least once since the last SQL Server restart. |
+| **With Execution** | Runs the SP once with the parameters you provide, then captures a live delta of server wait stats alongside all static signals. Use this when the plan cache is cold or you want to confirm current behaviour. |
+
+### Running an Analysis
+
+1. In the **🔍 Analyze** tab, type or select a stored procedure name
+2. Choose **Static** or **With Execution** mode
+3. In execution mode, click **Load Params** to populate the parameter table, then fill in values
+4. Click **Run Analysis**
+
+Results are organised into five tabs:
+
+#### Summary
+
+A severity score (0–100) and a prioritised list of the most important signals found. Start here — it tells you where to look first.
+
+#### Statements
+
+Per-statement execution statistics pulled from the plan cache. Shows each statement within the procedure ranked by total elapsed time, CPU usage, and logical reads. Use this to identify the exact line causing the most overhead.
+
+Requires the procedure to have been executed at least once since the last SQL Server restart.
+
+#### Warnings
+
+Query plan warnings extracted directly from the cached execution plan:
+
+| Warning | What it means |
+|---------|---------------|
+| **Implicit conversion** | A parameter or column type mismatch is forcing SQL Server to convert values at runtime, which can prevent index seeks and cause full scans |
+| **No join predicate** | A join between two tables has no ON clause — produces a cross join and typically indicates a query bug |
+
+#### Indexes
+
+Three sections covering index health for the procedure's referenced tables:
+
+**Missing Index Suggestions** — indexes SQL Server recommends creating. When the procedure's execution plan is cached, suggestions are read directly from that plan (SP-specific). When the plan is not cached, suggestions are sourced from the DMV filtered to tables this SP directly references. Each suggestion shows:
+- Impact percentage — SQL Server's estimate of the query performance improvement if the index is created
+- Key columns (equality and inequality predicates)
+- Include columns
+- A ready-to-run CREATE INDEX script
+
+**Existing Indexes** — all indexes on the procedure's referenced tables, with usage counters (seeks, scans, lookups, updates) since the last SQL Server restart. Indexes with zero activity are flagged **UNUSED**. Indexes with significantly more scans than seeks are flagged **scan-heavy** (often a sign of a missing or poorly-designed index).
+
+> A note below the table shows when SQL Server last restarted. Indexes marked UNUSED may have been active before that point.
+
+**Key Lookups (Plan-Verified)** — detected directly from the execution plan XML. A key lookup means SQL Server found a row in a nonclustered index but then had to fetch additional columns from the clustered index, causing extra IO. Each entry shows the affected table, the driving nonclustered index, and how many times per query execution the lookup is estimated to occur. The fix is to extend the nonclustered index's INCLUDE clause to cover the fetched columns.
+
+#### Execution
+
+Cached execution statistics for the procedure: average duration, CPU time, logical reads, physical reads, writes, execution count, and last execution time.
+
+In **With Execution** mode, a **Wait Stats Delta** section shows the server-wide wait types that accumulated during the execution window. This is an approximation — it includes waits from all concurrent queries on the server, not just this SP — but a dominant wait type is usually a meaningful signal.
+
+### Exporting
+
+Click **⬇ PDF Report** to export a full analyzer report including all signals, index scripts, and warnings.
+
+### AI Analysis
+
+The **Analyze with AI** button will provide a structured diagnosis — root cause classification, prioritised recommendations, suggested index scripts, and an optionally rewritten version of the procedure. This feature is currently marked *Coming Soon* while usage management is finalised.
+
+---
+
+## 12. Test History
 
 The **History** tab lists the last 100 test runs, newest first.
 
