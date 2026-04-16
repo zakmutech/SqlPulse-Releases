@@ -65,7 +65,7 @@ SqlPulse is organised into four main areas:
 ┌─────────────────────────────────────────────────────────────┐
 │  Header bar — app title, run status, update notifications   │
 ├──────────────┬──────────────────────────────────────────────┤
-│              │  Tabs: New Test │ Results │ ⚡ Sweep │ History │ 🔍 Analyze │
+│              │  Tabs: New Test │ Results │ ⚡ Sweep │ History│
 │   Server     ├──────────────────────────────────────────────┤
 │   Sidebar    │                                              │
 │              │            Main content area                 │
@@ -84,7 +84,6 @@ SqlPulse is organised into four main areas:
 | **Results tab** | View live progress during a run, and full results after |
 | **⚡ Sweep tab** | Run an automated concurrency sweep across multiple worker tiers |
 | **History tab** | Browse all past runs, compare results, re-run configurations |
-| **🔍 Analyze tab** | Diagnose a stored procedure's performance using SQL Server's internal signals |
 | **Status bar** | Always shows the currently active server and database |
 
 ---
@@ -395,7 +394,9 @@ One row per completed tier showing: Workers | Throughput | Avg | P50 | P95 | P99
 
 ## 11. SP Performance Analyzer
 
-The **🔍 Analyze** tab diagnoses a stored procedure's performance using SQL Server's own internal signals — execution plan cache, missing index recommendations, index usage statistics, wait events, and query-level hotspots. No stress test required.
+The SP Performance Analyzer diagnoses a stored procedure's performance using SQL Server's own internal signals — execution plan cache, missing index recommendations, index usage statistics, wait events, and query-level hotspots. No stress test required.
+
+To open it, select a procedure in the **New Test** tab and click the **🔍 Analyze SP** button.
 
 ### Collection Modes
 
@@ -406,7 +407,7 @@ The **🔍 Analyze** tab diagnoses a stored procedure's performance using SQL Se
 
 ### Running an Analysis
 
-1. In the **🔍 Analyze** tab, type or select a stored procedure name
+1. Select a procedure in the **New Test** tab, then click **🔍 Analyze SP**
 2. Choose **Static** or **With Execution** mode
 3. In execution mode, click **Load Params** to populate the parameter table, then fill in values
 4. Click **Run Analysis**
@@ -497,7 +498,7 @@ If your history contains runs from multiple connections, a **Connection** dropdo
 
 ---
 
-## 12. Comparing Runs
+## 13. Comparing Runs
 
 Any two historical runs can be compared side by side.
 
@@ -523,7 +524,7 @@ Metrics compared: Avg duration, P50, P95, P99, Min, Max, Throughput, Success rat
 
 ---
 
-## 13. Exporting Results
+## 14. Exporting Results
 
 From the **Results** panel, two export formats are available:
 
@@ -556,7 +557,7 @@ The Excel export is useful for further analysis, charting in Excel, or importing
 
 ---
 
-## 14. Settings & License
+## 15. Settings & License
 
 Click **⚙ Settings** in the top-right header to open the settings modal.
 
@@ -594,7 +595,7 @@ To manually check for updates, click the version number (`v1.7`) in the header.
 
 ---
 
-## 15. Frequently Asked Questions
+## 16. Frequently Asked Questions
 
 **Does SqlPulse store my database credentials?**  
 Credentials are saved locally on your machine in the application's data directory. They are never transmitted to Zakmu Technologies or any third party.
