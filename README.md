@@ -1,6 +1,6 @@
 # SqlPulse User Guide
 
-**Version 1.9**  
+**Version 2.0**  
 Zakmu Technologies
 
 ---
@@ -10,27 +10,27 @@ Zakmu Technologies
 1. [Introduction](#1-introduction)
 2. [Installation](#2-installation)
 3. [Interface Overview](#3-interface-overview)
-4. [Managing Connections](#4-managing-connections)
-5. [Selecting a Stored Procedure](#5-selecting-a-stored-procedure)
-6. [Configuring Parameters](#6-configuring-parameters)
-7. [Running a Stress Test](#7-running-a-stress-test)
-8. [Live Progress](#8-live-progress)
-9. [Test Results](#9-test-results)
-10. [Concurrency Sweep](#10-concurrency-sweep)
-11. [SP Performance Analyzer](#11-sp-performance-analyzer)
-12. [Test History](#12-test-history)
-13. [Comparing Runs](#13-comparing-runs)
-14. [Exporting Results](#14-exporting-results)
-15. [Settings & License](#15-settings--license)
-16. [Frequently Asked Questions](#16-frequently-asked-questions)
+4. [Dashboard](#4-dashboard)
+5. [Managing Connections](#5-managing-connections)
+6. [Selecting a Stored Procedure](#6-selecting-a-stored-procedure)
+7. [Configuring Parameters](#7-configuring-parameters)
+8. [Running a Stress Test](#8-running-a-stress-test)
+9. [Live Progress](#9-live-progress)
+10. [Test Results](#10-test-results)
+11. [Concurrency Sweep](#11-concurrency-sweep)
+12. [SP Performance Analyzer](#12-sp-performance-analyzer)
+13. [Active Blockers](#13-active-blockers)
+14. [Test History](#14-test-history)
+15. [Comparing Runs](#15-comparing-runs)
+16. [Exporting Results](#16-exporting-results)
+17. [Settings & License](#17-settings--license)
+18. [Frequently Asked Questions](#18-frequently-asked-questions)
 
 ---
 
 ## 1. Introduction
 
-SqlPulse is a desktop stress testing tool for **SQL Server stored procedures**. It lets you measure how a stored procedure behaves under concurrent load — how many requests per second it can sustain, where latency degrades, and whether it fails under pressure.
-
-Unlike general-purpose load testing tools, SqlPulse speaks native SQL Server. There is no HTTP layer, no scripting language to learn, and no complex configuration. You connect, pick a procedure, and run.
+SqlPulse is a desktop toolkit for **SQL Server performance diagnostics**. It lets you stress test stored procedures under concurrent load, analyse execution plans and index health, monitor real-time blocking chains, and compare results across runs — all without HTTP layers, scripting languages, or complex configuration.
 
 **What SqlPulse answers:**
 
@@ -39,6 +39,7 @@ Unlike general-purpose load testing tools, SqlPulse speaks native SQL Server. Th
 - Will this procedure hold up under peak traffic on release day?
 - Is the improvement after my index change measurable and consistent?
 - Why is this procedure slow — missing indexes, key lookups, implicit conversions, stale stats?
+- Which sessions are blocking right now, and what are they waiting on?
 
 ---
 
@@ -59,42 +60,55 @@ SqlPulse requires a network connection to your SQL Server instance. It does not 
 
 ## 3. Interface Overview
 
-SqlPulse is organised into four main areas:
+SqlPulse uses a two-panel layout: a **left sidebar** for server connections and tool navigation, and a **main content area** for the active tool.
 
 ```
-┌─────────────────────────────────────────────────────────────┐
-│  Header bar — app title, run status, update notifications   │
-├──────────────┬──────────────────────────────────────────────┤
-│              │  Tabs: New Test │ Results │ ⚡ Sweep │ History│
-│   Server     ├──────────────────────────────────────────────┤
-│   Sidebar    │                                              │
-│              │            Main content area                 │
-│  (saved      │                                              │
-│ connections) │                                              │
-│              │                                              │
-├──────────────┴──────────────────────────────────────────────┤
-│  Connection status bar (active server / database)           │
-└─────────────────────────────────────────────────────────────┘
+┌─────────────────────────────────────────────────────────────────┐
+│  Header — logo, active connection, version, theme toggle, menus  │
+├──────────────┬──────────────────────────────────────────────────┤
+│   Server     │                                                  │
+│   Explorer   │            Active tool panel                     │
+│              │                                                  │
+│  ────────    │  (Dashboard / SP Stress Tester /                 │
+│   Tool Nav   │   SP Analyzer / Active Blockers)                 │
+│              │                                                  │
+│  Dashboard   │                                                  │
+│  Stress Test │                                                  │
+│  SP Analyzer │                                                  │
+│  Blockers    │                                                  │
+└──────────────┴──────────────────────────────────────────────────┘
 ```
 
 | Area | Purpose |
 |------|---------|
-| **Server Sidebar** | Create, manage, and switch between saved database connections |
-| **New Test tab** | Configure and start a stress test |
-| **Results tab** | View live progress during a run, and full results after |
-| **⚡ Sweep tab** | Run an automated concurrency sweep across multiple worker tiers |
-| **History tab** | Browse all past runs, compare results, re-run configurations |
-| **Status bar** | Always shows the currently active server and database |
+| **Header** | App title, active server/database, version number, theme toggle, Guide, Settings, Support |
+| **Server Explorer** | Create, manage, and switch between saved database connections |
+| **Tool Navigation** | Switch between the four tools: Dashboard, SP Stress Tester, SP Analyzer, Active Blockers |
+| **Main content area** | The active tool's interface |
+
+### Theme Toggle
+
+The **☾ / ☀** button in the top-right header switches between light and dark mode. Your preference is saved and restored automatically on next launch.
 
 ---
 
-## 4. Managing Connections
+## 4. Dashboard
 
-All database connections are managed in the **Server Sidebar** on the left.
+The **Dashboard** is the home screen and launches automatically when SqlPulse opens. It provides a quick-launch grid for all available tools.
+
+Each tool card shows the tool's name, a short description, and an **Open** button. Click anywhere on a card (or its Open button) to navigate directly to that tool.
+
+Tools marked **Coming Soon** are visible but not yet available in this version.
+
+---
+
+## 5. Managing Connections
+
+All database connections are managed in the **Server Explorer** at the top of the left sidebar.
 
 ### Adding a Connection
 
-1. Click the **+** button at the top of the sidebar
+1. Click the **+** button at the top of the Server Explorer
 2. Fill in the connection details:
 
 | Field | Description |
@@ -167,7 +181,7 @@ Authenticates using an Entra ID app registration. Intended for automated or non-
 
 ### Switching Connections
 
-Click any saved connection in the sidebar to make it active. The status bar at the bottom updates to reflect the current connection. Switching connection resets the procedure selection.
+Click any saved connection in the sidebar to make it active. The active connection is shown in the header. Switching connection resets the procedure selection.
 
 ### Editing or Deleting a Connection
 
@@ -175,9 +189,9 @@ Hover over a connection in the sidebar to reveal the edit (pencil) and delete (t
 
 ---
 
-## 5. Selecting a Stored Procedure
+## 6. Selecting a Stored Procedure
 
-With an active connection, the **Procedure** panel at the top of the **New Test** tab lets you select which stored procedure to test.
+With an active connection, open the **SP Stress Tester** tool. The **Procedure** panel at the top of the **New Test** tab lets you select which stored procedure to test.
 
 1. Click **Load Procedures** — SqlPulse queries `sys.procedures` and populates the list
 2. Select a procedure from the dropdown
@@ -187,7 +201,7 @@ The procedure name always appears alongside the active tab title so you know wha
 
 ---
 
-## 6. Configuring Parameters
+## 7. Configuring Parameters
 
 Each parameter discovered from the procedure signature appears as a row in the parameter table. For each parameter, choose a **mode**:
 
@@ -224,7 +238,7 @@ Upload a CSV file and map a column to the parameter. SqlPulse rotates through th
 
 ---
 
-## 7. Running a Stress Test
+## 8. Running a Stress Test
 
 In the **New Test** tab, configure the test parameters in the **Test Configuration** panel:
 
@@ -250,7 +264,7 @@ Click **■ Stop Test** at any time to halt the run. In-flight executions comple
 
 ---
 
-## 8. Live Progress
+## 9. Live Progress
 
 While a test is running, the **Results** tab shows a live dashboard:
 
@@ -284,7 +298,7 @@ Charts appear after 3 or more data points have been collected.
 
 ---
 
-## 9. Test Results
+## 10. Test Results
 
 When a test completes (or is stopped), the full results panel loads below the live metrics.
 
@@ -338,7 +352,7 @@ A table listing each parameter, its type, and the mode used (static / random / C
 
 ---
 
-## 10. Concurrency Sweep
+## 11. Concurrency Sweep
 
 The **⚡ Sweep** tab runs your stored procedure at a series of concurrency levels automatically, then shows you how performance scales — and where it breaks down.
 
@@ -392,11 +406,11 @@ One row per completed tier showing: Workers | Throughput | Avg | P50 | P95 | P99
 
 ---
 
-## 11. SP Performance Analyzer
+## 12. SP Performance Analyzer
 
 The SP Performance Analyzer diagnoses a stored procedure's performance using SQL Server's own internal signals — execution plan cache, missing index recommendations, index usage statistics, wait events, and query-level hotspots. No stress test required.
 
-To open it, select a procedure in the **New Test** tab and click the **🔍 Analyze SP** button.
+To open it, select a procedure in the **New Test** tab and click the **🔍 Analyze SP** button, or navigate directly to **SP Analyzer** in the tool sidebar.
 
 ### Collection Modes
 
@@ -407,7 +421,7 @@ To open it, select a procedure in the **New Test** tab and click the **🔍 Anal
 
 ### Running an Analysis
 
-1. Select a procedure in the **New Test** tab, then click **🔍 Analyze SP**
+1. Select a procedure in the **New Test** tab, then click **🔍 Analyze SP** — or open **SP Analyzer** from the sidebar
 2. Choose **Static** or **With Execution** mode
 3. In execution mode, click **Load Params** to populate the parameter table, then fill in values
 4. Click **Run Analysis**
@@ -465,7 +479,68 @@ The **Analyze with AI** button will provide a structured diagnosis — root caus
 
 ---
 
-## 12. Test History
+## 13. Active Blockers
+
+The **Active Blockers** tool gives you a real-time view of SQL Server blocking chains — which sessions are holding locks, which sessions are waiting, and how long they have been waiting. Use it to diagnose live performance incidents or to watch for blocking patterns during a stress test.
+
+Navigate to **Active Blockers** in the tool sidebar to open it.
+
+### How It Works
+
+Active Blockers queries `sys.dm_exec_requests`, `sys.dm_exec_sessions`, and `sys.dm_exec_sql_text` to build a blocking tree. It refreshes on a configurable interval (or on demand) and displays results as an indented chain — head blocker at the top, blocked sessions indented beneath it.
+
+> **Permission required:** The tool needs `VIEW SERVER STATE` to read the DMVs. If your login does not have this permission, a notice is shown at the top of the panel.
+
+### Summary Bar
+
+Four metric cards update on every refresh:
+
+| Card | Description |
+|------|-------------|
+| **Head Blockers** | Number of distinct sessions that are blocking at least one other session |
+| **Blocked** | Total number of sessions currently waiting on a lock held by another session |
+| **Max Wait** | Longest individual wait time across all blocked sessions |
+| **Total Wait** | Sum of all blocked sessions' wait times |
+
+### Blocking Chains
+
+Each blocking chain is shown as a card group. The **HEAD BLOCKER** card is highlighted in red and shows:
+
+- **SPID** — SQL Server process ID
+- **Wait time** — how long this session has been holding the blocking lock
+- **Procedure / query** — the stored procedure name or a truncated preview of the SQL text
+- **Wait type and hint** — the lock type being held (e.g. `LCK_M_X — Exclusive lock — waiting on row write`)
+- **Login, host, and application** — who and what is running the session
+- **Open transaction count** — number of uncommitted transactions
+
+Blocked sessions are shown below the head blocker, indented with a connector line. Each blocked session card shows the same fields plus its own wait time.
+
+### Refresh Options
+
+Use the **Refresh** controls in the toolbar to configure how often the view updates:
+
+| Option | Behaviour |
+|--------|-----------|
+| **Manual** | Only refreshes when you click the refresh button |
+| **5s / 15s / 30s** | Auto-refreshes on the selected interval |
+
+A **Live** badge pulses in the toolbar when auto-refresh is active. The last-refreshed timestamp is shown to the right.
+
+### Killing a Session
+
+Each HEAD BLOCKER card has a **Kill SPID** button. Clicking it opens a confirmation modal showing the SPID, login, host, application, and the SQL text about to be killed. Confirm to issue `KILL <spid>` against the server.
+
+> **Use with caution.** Killing a session rolls back any open transaction and immediately releases its locks, unblocking all downstream sessions. However, killing the wrong session can cause data loss or leave application state inconsistent. Always verify the session details before confirming.
+
+> **Permission required:** Killing a session requires `ALTER ANY CONNECTION` (or `sysadmin`).
+
+### When There Are No Blockers
+
+If no blocking chains are detected, the panel shows a green confirmation that the server is clear. The summary bar still updates to confirm zero head blockers and zero blocked sessions.
+
+---
+
+## 14. Test History
 
 The **History** tab lists the last 100 test runs, newest first.
 
@@ -498,7 +573,7 @@ If your history contains runs from multiple connections, a **Connection** dropdo
 
 ---
 
-## 13. Comparing Runs
+## 15. Comparing Runs
 
 Any two historical runs can be compared side by side.
 
@@ -524,7 +599,7 @@ Metrics compared: Avg duration, P50, P95, P99, Min, Max, Throughput, Success rat
 
 ---
 
-## 14. Exporting Results
+## 16. Exporting Results
 
 From the **Results** panel, two export formats are available:
 
@@ -557,7 +632,7 @@ The Excel export is useful for further analysis, charting in Excel, or importing
 
 ---
 
-## 15. Settings & License
+## 17. Settings & License
 
 Click **⚙ Settings** in the top-right header to open the settings modal.
 
@@ -581,6 +656,10 @@ Click **Deactivate License** to remove the activation from this machine. SqlPuls
 
 Manage activations, billing, and account details at [zakmutechnologies.com](https://www.zakmutechnologies.com).
 
+### Theme
+
+Use the **☾ / ☀** button in the header to toggle between light and dark mode at any time. The setting persists across sessions — SqlPulse remembers your last choice on next launch.
+
 ### Updates
 
 SqlPulse checks for updates automatically. When an update is available:
@@ -591,11 +670,11 @@ SqlPulse checks for updates automatically. When an update is available:
 
 From the update modal you can download and install the update. Installation requires an app restart. Critical updates are marked as required and must be installed to continue using SqlPulse.
 
-To manually check for updates, click the version number (`v1.7`) in the header.
+To manually check for updates, click the version number (e.g. `v2.0.0`) in the header.
 
 ---
 
-## 16. Frequently Asked Questions
+## 18. Frequently Asked Questions
 
 **Does SqlPulse store my database credentials?**  
 Credentials are saved locally on your machine in the application's data directory. They are never transmitted to Zakmu Technologies or any third party.
@@ -629,6 +708,12 @@ For on-premises SQL Server, uncheck **Encrypt (TLS)** — local servers typicall
 
 **Connection times out**  
 Check that the server name and port (default 1433) are correct, and that any firewall between SqlPulse and the SQL Server allows inbound TCP connections on that port. For Azure SQL, ensure your public IP is added to the Azure SQL firewall rules (SqlPulse shows your outbound IP in the connection panel).
+
+**The Active Blockers tool says "VIEW SERVER STATE permission required"**  
+The login you connected with does not have `VIEW SERVER STATE`. Ask your DBA to grant it: `GRANT VIEW SERVER STATE TO [your_login];`. Without it, SqlPulse cannot query the blocking DMVs.
+
+**I killed the wrong SPID — what happens?**  
+SQL Server immediately rolls back any open transaction on the killed session and closes the connection. The application owning that connection will receive a connection error. If the session had an open transaction, all uncommitted changes are rolled back.
 
 **How many executions can a single test run?**  
 Up to 100,000 executions per test run.
