@@ -1,6 +1,6 @@
 # SqlPulse User Guide
 
-**Version 2.0**  
+**Version 2.1**  
 Zakmu Technologies
 
 ---
@@ -20,17 +20,18 @@ Zakmu Technologies
 11. [Concurrency Sweep](#11-concurrency-sweep)
 12. [SP Performance Analyzer](#12-sp-performance-analyzer)
 13. [Active Blockers](#13-active-blockers)
-14. [Test History](#14-test-history)
-15. [Comparing Runs](#15-comparing-runs)
-16. [Exporting Results](#16-exporting-results)
-17. [Settings & License](#17-settings--license)
-18. [Frequently Asked Questions](#18-frequently-asked-questions)
+14. [Wait Stats](#14-wait-stats)
+15. [Test History](#15-test-history)
+16. [Comparing Runs](#16-comparing-runs)
+17. [Exporting Results](#17-exporting-results)
+18. [Settings & License](#18-settings--license)
+19. [Frequently Asked Questions](#19-frequently-asked-questions)
 
 ---
 
 ## 1. Introduction
 
-SqlPulse is a desktop toolkit for **SQL Server performance diagnostics**. It lets you stress test stored procedures under concurrent load, analyse execution plans and index health, monitor real-time blocking chains, and compare results across runs — all without HTTP layers, scripting languages, or complex configuration.
+SqlPulse is a desktop toolkit for **SQL Server performance diagnostics**. It lets you stress test stored procedures under concurrent load, analyse execution plans and index health, monitor real-time blocking chains, investigate server-wide wait statistics, and compare results across runs — all without HTTP layers, scripting languages, or complex configuration.
 
 **What SqlPulse answers:**
 
@@ -40,6 +41,7 @@ SqlPulse is a desktop toolkit for **SQL Server performance diagnostics**. It let
 - Is the improvement after my index change measurable and consistent?
 - Why is this procedure slow — missing indexes, key lookups, implicit conversions, stale stats?
 - Which sessions are blocking right now, and what are they waiting on?
+- Is my server under CPU, I/O, lock, or memory pressure? What are the top waits?
 
 ---
 
@@ -76,6 +78,7 @@ SqlPulse uses a two-panel layout: a **left sidebar** for server connections and 
 │  Stress Test │                                                  │
 │  SP Analyzer │                                                  │
 │  Blockers    │                                                  │
+│  Wait Stats  │                                                  │
 └──────────────┴──────────────────────────────────────────────────┘
 ```
 
@@ -83,7 +86,7 @@ SqlPulse uses a two-panel layout: a **left sidebar** for server connections and 
 |------|---------|
 | **Header** | App title, active server/database, version number, theme toggle, Guide, Settings, Support |
 | **Server Explorer** | Create, manage, and switch between saved database connections |
-| **Tool Navigation** | Switch between the four tools: Dashboard, SP Stress Tester, SP Analyzer, Active Blockers |
+| **Tool Navigation** | Switch between tools: Dashboard, SP Stress Tester, SP Analyzer, Active Blockers, Wait Stats |
 | **Main content area** | The active tool's interface |
 
 ### Theme Toggle
@@ -98,7 +101,7 @@ The **Dashboard** is the home screen and launches automatically when SqlPulse op
 
 Each tool card shows the tool's name, a short description, and an **Open** button. Click anywhere on a card (or its Open button) to navigate directly to that tool.
 
-Tools marked **Coming Soon** are visible but not yet available in this version.
+Tools marked **Coming Soon** are visible but not yet available in this version. Currently available tools: SP Stress Tester, SP Analyzer, Active Blockers, and Wait Stats.
 
 ---
 
@@ -540,7 +543,123 @@ If no blocking chains are detected, the panel shows a green confirmation that th
 
 ---
 
-## 14. Test History
+## 14. Wait Stats
+
+The **Wait Stats** tool gives you a server-wide view of SQL Server wait statistics — the single best signal for understanding what your server is spending time on. Use it to diagnose CPU pressure, I/O bottlenecks, lock contention, memory grants, and more.
+
+Navigate to **Wait Stats** in the tool sidebar or click its card on the Dashboard to open it.
+
+> **Permission required:** The tool reads `sys.dm_os_wait_stats` and `sys.dm_os_sys_info`, both requiring `VIEW SERVER STATE`. If your login does not have this permission, a notice is shown. Ask your DBA to run: `GRANT VIEW SERVER STATE TO [your_login];`
+
+### How It Works
+
+Wait Stats queries SQL Server's `sys.dm_os_wait_stats` DMV, which accumulates every wait event since the last SQL Server restart. SqlPulse filters out benign background waits (idle scheduler sleeps, log cache flushes, etc.) and shows you the top 35 meaningful wait types ranked by cumulative wait time.
+
+Results are **cumulative since the last SQL Server restart** — they are not a snapshot of right now. A dominant wait type at the top of the list means that wait has been the biggest contributor to wait time since the server started. For a server with a long uptime, this smooths out short spikes; use the **Refresh** button to compare values over time.
+
+### Summary Bar
+
+Four cards at the top of the panel:
+
+| Card | Description |
+|------|-------------|
+| **SQL Server Uptime** | How long since the server last restarted, and the exact restart timestamp |
+| **Total Wait Time** | Cumulative non-benign wait time across all wait types since restart |
+| **Signal Wait %** | The percentage of total wait time spent waiting for a CPU scheduler slot (as opposed to an external resource). A healthy server is under 5%. Values above 10% indicate CPU pressure. |
+| **Wait Types** | Number of non-benign wait types with at least one waiting task |
+
+The **Signal Wait %** card is colour-coded:
+
+| Value | Colour | Interpretation |
+|-------|--------|----------------|
+| < 5% | Neutral | CPU pressure normal |
+| 5–9% | Yellow | Some CPU pressure |
+| 10–24% | Orange | CPU pressure elevated — investigate |
+| ≥ 25% | Red | CPU pressure critical — urgent |
+
+### Wait Categories
+
+Below the summary bar, a row of chips groups all detected wait types by category:
+
+| Category | What it covers |
+|----------|----------------|
+| **I/O** | Disk reads/writes — `PAGEIOLATCH_*`, `WRITELOG`, `ASYNC_IO_COMPLETION` |
+| **CPU** | CPU scheduling pressure — `SOS_SCHEDULER_YIELD`, `THREADPOOL` |
+| **Memory** | Query memory grants, allocation contention — `RESOURCE_SEMAPHORE`, `CMEMTHREAD` |
+| **Lock** | Row/page/table lock waits — `LCK_M_*` |
+| **Latch** | In-memory page and non-buffer latches — `PAGELATCH_*`, `LATCH_*` |
+| **Parallelism** | Parallel query thread synchronisation — `CXPACKET`, `CXCONSUMER` |
+| **Network** | Client fetch lag — `ASYNC_NETWORK_IO` |
+| **HA/DR** | Always On / mirroring — `HADR_*` |
+| **In-Memory** | In-Memory OLTP — `XTP_*` |
+| **Other** | Wait types not in a named category |
+
+Each chip shows the category's **percentage of total wait time** and the **highest severity** wait type within it (critical / high / medium / low / info). This lets you immediately see which pressure type is dominant.
+
+### Top Wait Types Table
+
+The main table lists each non-benign wait type with:
+
+| Column | Description |
+|--------|-------------|
+| **Wait Type** | SQL Server wait type name, colour-coded by severity |
+| **Category** | Which pressure category the wait belongs to |
+| **% Total** | Percentage share of all non-benign wait time, shown as a bar |
+| **Total Wait** | Cumulative wait time since SQL Server restart |
+| **Tasks** | Number of tasks that have waited on this type since restart |
+| **Max Wait** | Single longest wait recorded for this type |
+| **Signal Wait** | Portion of wait time spent waiting for a CPU slot |
+
+**Sortable:** Click the **Sort by** buttons (Total Wait / % of Total / Task Count / Max Wait) to re-rank the table.
+
+**Expandable rows:** Click any row to expand it. The expanded view shows:
+- A description of what the wait type means
+- A recommended action — what to investigate or fix
+
+For example, clicking `WRITELOG` shows:
+> *Waiting for transaction log to flush to disk (log write or commit).* **Recommended action:** Move log to faster disk (SSD). Check for excessive small transactions. Consider batching.
+
+### Interpreting Common Waits
+
+**`SOS_WORK_DISPATCHER` / `QDS_*` / `DIRTY_PAGE_POLL`** — These are SQL Server background housekeeping waits. They are not harmful. If they dominate the top of your list it just means your server is mostly idle or running background tasks, and actual query waits are proportionally small.
+
+**`CXPACKET` high, `SOS_SCHEDULER_YIELD` also high** — Parallel queries competing for CPU. Review your `MAXDOP` setting and `Cost Threshold for Parallelism`.
+
+**`PAGEIOLATCH_SH` / `PAGEIOLATCH_EX` dominant** — Your working set exceeds available RAM. SQL Server is reading/writing pages from disk frequently. Adding RAM is the most direct fix.
+
+**`LCK_M_X` or `LCK_M_S` dominant** — Lock contention. Use Active Blockers to identify who is blocking, and investigate transaction design or isolation level.
+
+**`WRITELOG` dominant** — Log flush is a bottleneck. Move your transaction log to a dedicated fast disk (SSD / NVMe).
+
+**`RESOURCE_SEMAPHORE` dominant** — Queries are waiting for memory grants (for sorts and hash joins). Add RAM or tune queries to reduce sort/hash memory requirements.
+
+### AI Analysis
+
+The **✦ AI Analysis** button appears in the top bar once wait stats have been loaded. Clicking it sends the top 15 wait types, signal wait %, total wait time, and server uptime to the AI for a structured diagnosis.
+
+The AI result panel shows:
+
+| Section | Description |
+|---------|-------------|
+| **Verdict** | **Healthy** (green) / **Warning** (amber) / **Critical** (red) — with a one-sentence headline citing specific numbers |
+| **Confidence** | How strongly the data supports the verdict (high / medium / low) |
+| **Primary Pressure** | The dominant wait category driving the assessment |
+| **Summary** | 2–3 sentences in plain language: what the pattern means, likely cause, and risk if unaddressed |
+| **Key Findings** | Specific observations with numbers tied to your actual wait data |
+| **Recommendations** | Up to 4 prioritized actions, each tagged High / Medium / Low impact |
+| **Watch List** | Specific wait types to keep monitoring on subsequent refreshes |
+
+The AI is trained to distinguish **background noise** (e.g. `SOS_WORK_DISPATCHER`, `QDS_*`, `DIRTY_PAGE_POLL`) from genuine performance signals — so on a healthy or lightly-loaded server, the verdict will correctly reflect that rather than generating false alarms.
+
+Click **✦ Re-analyze** after a Refresh to get a fresh diagnosis on the updated data.
+
+### Refresh
+
+Click **⟳ Refresh** to re-query the server. The **Updated** timestamp shows when the last successful fetch completed. Wait Stats does not auto-refresh — use manual refresh to take snapshots over time and observe whether values are growing.
+
+---
+
+## 15. Test History
 
 The **History** tab lists the last 100 test runs, newest first.
 
@@ -573,7 +692,7 @@ If your history contains runs from multiple connections, a **Connection** dropdo
 
 ---
 
-## 15. Comparing Runs
+## 16. Comparing Runs
 
 Any two historical runs can be compared side by side.
 
@@ -599,7 +718,7 @@ Metrics compared: Avg duration, P50, P95, P99, Min, Max, Throughput, Success rat
 
 ---
 
-## 16. Exporting Results
+## 17. Exporting Results
 
 From the **Results** panel, two export formats are available:
 
@@ -632,7 +751,7 @@ The Excel export is useful for further analysis, charting in Excel, or importing
 
 ---
 
-## 17. Settings & License
+## 18. Settings & License
 
 Click **⚙ Settings** in the top-right header to open the settings modal.
 
@@ -670,11 +789,11 @@ SqlPulse checks for updates automatically. When an update is available:
 
 From the update modal you can download and install the update. Installation requires an app restart. Critical updates are marked as required and must be installed to continue using SqlPulse.
 
-To manually check for updates, click the version number (e.g. `v2.0.0`) in the header.
+To manually check for updates, click the version number (e.g. `v2.3.0`) in the header.
 
 ---
 
-## 18. Frequently Asked Questions
+## 19. Frequently Asked Questions
 
 **Does SqlPulse store my database credentials?**  
 Credentials are saved locally on your machine in the application's data directory. They are never transmitted to Zakmu Technologies or any third party.
@@ -711,6 +830,15 @@ Check that the server name and port (default 1433) are correct, and that any fir
 
 **The Active Blockers tool says "VIEW SERVER STATE permission required"**  
 The login you connected with does not have `VIEW SERVER STATE`. Ask your DBA to grant it: `GRANT VIEW SERVER STATE TO [your_login];`. Without it, SqlPulse cannot query the blocking DMVs.
+
+**The Wait Stats tool says "VIEW SERVER STATE permission required"**  
+Same as above — `VIEW SERVER STATE` is required to read `sys.dm_os_wait_stats`. Run `GRANT VIEW SERVER STATE TO [your_login];` to enable the tool.
+
+**Wait Stats shows 0% for all categories**  
+This can happen when a single background wait type (like `SOS_WORK_DISPATCHER`) dominates at 90%+, leaving other categories with less than 0.5% each — which rounds to 0. It means your server is mostly idle or running internal housekeeping. The actual query-visible waits (I/O, Locks, CPU) are proportionally small, which is a good sign.
+
+**Wait Stats values seem very large**  
+Wait stats are cumulative since the last SQL Server restart. On a server that has been running for weeks or months, the values naturally accumulate to very large numbers. Focus on the **percentage share** and the **relative ranking** rather than the raw millisecond values.
 
 **I killed the wrong SPID — what happens?**  
 SQL Server immediately rolls back any open transaction on the killed session and closes the connection. The application owning that connection will receive a connection error. If the session had an open transaction, all uncommitted changes are rolled back.
