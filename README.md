@@ -1,6 +1,6 @@
 # SqlPulse User Guide
 
-**Version 2.1**  
+**Version 2.2**  
 Zakmu Technologies
 
 ---
@@ -20,12 +20,13 @@ Zakmu Technologies
 11. [Concurrency Sweep](#11-concurrency-sweep)
 12. [SP Performance Analyzer](#12-sp-performance-analyzer)
 13. [Active Blockers](#13-active-blockers)
-14. [Wait Stats](#14-wait-stats)
-15. [Test History](#15-test-history)
-16. [Comparing Runs](#16-comparing-runs)
-17. [Exporting Results](#17-exporting-results)
-18. [Settings & License](#18-settings--license)
-19. [Frequently Asked Questions](#19-frequently-asked-questions)
+14. [Permission Manager](#14-permission-manager)
+15. [Wait Stats](#15-wait-stats)
+16. [Test History](#16-test-history)
+17. [Comparing Runs](#17-comparing-runs)
+18. [Exporting Results](#18-exporting-results)
+19. [Settings & License](#19-settings--license)
+20. [Frequently Asked Questions](#20-frequently-asked-questions)
 
 ---
 
@@ -101,7 +102,7 @@ The **Dashboard** is the home screen and launches automatically when SqlPulse op
 
 Each tool card shows the tool's name, a short description, and an **Open** button. Click anywhere on a card (or its Open button) to navigate directly to that tool.
 
-Tools marked **Coming Soon** are visible but not yet available in this version. Currently available tools: SP Stress Tester, SP Analyzer, Active Blockers, and Wait Stats.
+Tools marked **Coming Soon** are visible but not yet available in this version. Currently available tools: SP Stress Tester, SP Analyzer, Active Blockers, Slow Queries, Permission Manager, and Wait Stats.
 
 ---
 
@@ -543,7 +544,75 @@ If no blocking chains are detected, the panel shows a green confirmation that th
 
 ---
 
-## 14. Wait Stats
+## 14. Permission Manager
+
+Permission Manager helps DBAs and application owners inspect and change SQL Server access from one controlled workflow. It starts with a read-only analysis of a login, then lets privileged users prepare common permission changes with an explicit SQL preview before anything is executed.
+
+### Analyze a Login
+
+1. Open **Permission Manager** from the dashboard or left navigation
+2. Search for a SQL Server login, Windows login, or Windows group
+3. Click **Analyze Permissions**
+4. Review the login summary, server roles, explicit server permissions, database mappings, and object-level grants or denies
+
+High-impact roles such as `sysadmin`, `securityadmin`, `serveradmin`, `db_owner`, and `db_securityadmin` are visually highlighted so they stand out during review.
+
+### Permission Sections
+
+| Section | Meaning |
+|---------|---------|
+| Server Roles | Fixed server role memberships such as `sysadmin`, `securityadmin`, or `bulkadmin` |
+| Explicit Server Permissions | Direct server-level grants such as `VIEW SERVER STATE` |
+| Database Access | Database users mapped to the login and their database role memberships |
+| Object-Level Permissions | Direct GRANT, DENY, or GRANT WITH GRANT OPTION entries on tables, views, and procedures |
+| Actions | Guarded changes for login status, server roles, database roles, and object permissions |
+
+### Safe Action Workflow
+
+Permission Manager does not hide the SQL it plans to run.
+
+1. Choose an action in the **Actions** section
+2. Fill in the role, database, user, object, or permission fields
+3. Click **Preview SQL**
+4. Review the generated script and any warnings
+5. Click **Execute Action** only after confirming the script is correct
+
+After a successful action, SqlPulse refreshes the permission analysis so the current view reflects the new server state.
+
+### Supported Actions
+
+| Action | Examples |
+|--------|----------|
+| Enable / Disable Login | `ALTER LOGIN [app_user] DISABLE` |
+| Server Role Membership | Add or remove a login from `securityadmin`, `bulkadmin`, or `sysadmin` |
+| Server Permission | GRANT, DENY, or REVOKE server-level permissions such as `VIEW SERVER STATE` |
+| Database Role Membership | Add or remove a database user from roles such as `db_datareader` or `db_owner` |
+| Object Permission | GRANT, DENY, or REVOKE permissions such as `EXECUTE`, `SELECT`, or `UPDATE` on a specific object |
+| Export JSON | Download the current permission analysis for review or audit evidence |
+
+### Required Permissions
+
+Analysis requires enough visibility to read server principals, server permissions, database principals, and database permissions. In many environments this means `VIEW SERVER STATE` plus `VIEW ANY DATABASE`, although highly privileged roles may already include the needed access.
+
+Actions run as the active SqlPulse connection. For example, changing server role membership requires appropriate server-level rights, while changing database roles or object grants requires appropriate rights in the target database.
+
+### Permission Manager FAQ
+
+**Why is sysadmin highlighted?**  
+`sysadmin` bypasses normal permission checks and effectively grants full control over the SQL Server instance. Treat additions and removals as high-risk administrative changes.
+
+**Why do I need to preview SQL first?**  
+Permission changes are security-sensitive. The preview step makes the exact SQL visible, reviewable, and copyable before SqlPulse executes it.
+
+**What is the difference between explicit and effective permissions?**  
+Explicit permissions are direct grants or denies visible in catalog views. Effective permissions are the final runtime result after roles, inherited memberships, ownership chains, and denies are applied. Permission Manager currently focuses on visible grants, roles, and guarded actions.
+
+**Why did an action fail even though the preview looked valid?**  
+The preview validates and formats the SQL, but SQL Server still enforces permissions at execution time. Use a connection with the required administrative rights for the target change.
+
+---
+
+## 15. Wait Stats
 
 The **Wait Stats** tool gives you a server-wide view of SQL Server wait statistics — the single best signal for understanding what your server is spending time on. Use it to diagnose CPU pressure, I/O bottlenecks, lock contention, memory grants, and more.
 
@@ -659,7 +728,7 @@ Click **⟳ Refresh** to re-query the server. The **Updated** timestamp shows wh
 
 ---
 
-## 15. Test History
+## 16. Test History
 
 The **History** tab lists the last 100 test runs, newest first.
 
@@ -692,7 +761,7 @@ If your history contains runs from multiple connections, a **Connection** dropdo
 
 ---
 
-## 16. Comparing Runs
+## 17. Comparing Runs
 
 Any two historical runs can be compared side by side.
 
@@ -718,7 +787,7 @@ Metrics compared: Avg duration, P50, P95, P99, Min, Max, Throughput, Success rat
 
 ---
 
-## 17. Exporting Results
+## 18. Exporting Results
 
 From the **Results** panel, two export formats are available:
 
@@ -751,7 +820,7 @@ The Excel export is useful for further analysis, charting in Excel, or importing
 
 ---
 
-## 18. Settings & License
+## 19. Settings & License
 
 Click **⚙ Settings** in the top-right header to open the settings modal.
 
@@ -793,7 +862,7 @@ To manually check for updates, click the version number (e.g. `v2.3.0`) in the h
 
 ---
 
-## 19. Frequently Asked Questions
+## 20. Frequently Asked Questions
 
 **Does SqlPulse store my database credentials?**  
 Credentials are saved locally on your machine in the application's data directory. They are never transmitted to Zakmu Technologies or any third party.
