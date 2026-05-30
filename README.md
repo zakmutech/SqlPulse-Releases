@@ -1,6 +1,6 @@
 # SqlPulse User Guide
 
-**Version 2.2**  
+**Version 2.8**  
 Zakmu Technologies
 
 ---
@@ -10,39 +10,37 @@ Zakmu Technologies
 1. [Introduction](#1-introduction)
 2. [Installation](#2-installation)
 3. [Interface Overview](#3-interface-overview)
-4. [Dashboard](#4-dashboard)
-5. [Managing Connections](#5-managing-connections)
-6. [Selecting a Stored Procedure](#6-selecting-a-stored-procedure)
-7. [Configuring Parameters](#7-configuring-parameters)
-8. [Running a Stress Test](#8-running-a-stress-test)
-9. [Live Progress](#9-live-progress)
-10. [Test Results](#10-test-results)
-11. [Concurrency Sweep](#11-concurrency-sweep)
-12. [SP Performance Analyzer](#12-sp-performance-analyzer)
-13. [Active Blockers](#13-active-blockers)
-14. [Permission Manager](#14-permission-manager)
-15. [Wait Stats](#15-wait-stats)
-16. [Test History](#16-test-history)
-17. [Comparing Runs](#17-comparing-runs)
-18. [Exporting Results](#18-exporting-results)
-19. [Settings & License](#19-settings--license)
-20. [Frequently Asked Questions](#20-frequently-asked-questions)
+4. [Tab System](#4-tab-system)
+5. [Dashboard](#5-dashboard)
+6. [Managing Connections](#6-managing-connections)
+7. [Query Editor](#7-query-editor)
+8. [SP Stress Tester](#8-sp-stress-tester)
+9. [SP Performance Analyzer](#9-sp-performance-analyzer)
+10. [Active Blockers](#10-active-blockers)
+11. [Wait Stats](#11-wait-stats)
+12. [Slow Queries](#12-slow-queries)
+13. [Permission Manager](#13-permission-manager)
+14. [Data Import](#14-data-import)
+15. [Test History](#15-test-history)
+16. [Comparing Runs](#16-comparing-runs)
+17. [Exporting Results](#17-exporting-results)
+18. [Settings & License](#18-settings--license)
+19. [Frequently Asked Questions](#19-frequently-asked-questions)
 
 ---
 
 ## 1. Introduction
 
-SqlPulse is a desktop toolkit for **SQL Server performance diagnostics**. It lets you stress test stored procedures under concurrent load, analyse execution plans and index health, monitor real-time blocking chains, investigate server-wide wait statistics, and compare results across runs — all without HTTP layers, scripting languages, or complex configuration.
+SqlPulse is a desktop toolkit for **SQL Server performance diagnostics and data management**. It lets you write and execute SQL queries, stress test stored procedures under concurrent load, analyse execution plans and index health, monitor real-time blocking chains, investigate server-wide wait statistics, import data from files and APIs, and compare results across runs — all without HTTP layers, scripting languages, or complex configuration.
 
 **What SqlPulse answers:**
 
 - How does this procedure perform when 25 users call it simultaneously?
 - At what concurrency level does latency start to degrade?
-- Will this procedure hold up under peak traffic on release day?
-- Is the improvement after my index change measurable and consistent?
 - Why is this procedure slow — missing indexes, key lookups, implicit conversions, stale stats?
 - Which sessions are blocking right now, and what are they waiting on?
-- Is my server under CPU, I/O, lock, or memory pressure? What are the top waits?
+- Is my server under CPU, I/O, lock, or memory pressure?
+- How do I get data from a CSV, Excel, API, FTP, or SFTP source into SQL Server quickly?
 
 ---
 
@@ -63,884 +61,523 @@ SqlPulse requires a network connection to your SQL Server instance. It does not 
 
 ## 3. Interface Overview
 
-SqlPulse uses a two-panel layout: a **left sidebar** for server connections and tool navigation, and a **main content area** for the active tool.
+SqlPulse uses a modern tabbed layout with a left sidebar for connections and tool navigation, a tab bar for switching between open tools, and a main content area.
 
 ```
-┌─────────────────────────────────────────────────────────────────┐
-│  Header — logo, active connection, version, theme toggle, menus  │
-├──────────────┬──────────────────────────────────────────────────┤
-│   Server     │                                                  │
-│   Explorer   │            Active tool panel                     │
-│              │                                                  │
-│  ────────    │  (Dashboard / SP Stress Tester /                 │
-│   Tool Nav   │   SP Analyzer / Active Blockers)                 │
-│              │                                                  │
-│  Dashboard   │                                                  │
-│  Stress Test │                                                  │
-│  SP Analyzer │                                                  │
-│  Blockers    │                                                  │
-│  Wait Stats  │                                                  │
-└──────────────┴──────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────────────────┐
+│  Title bar — logo, connection, version, theme toggle, Settings, Help │
+├──────────────────────────────────────────────────────────────────────┤
+│  🏠 Dashboard │ 🖊️ Query 1 ×│ ⚡ Stress Tester ×│ ＋                │  ← Tab bar
+├──────────────┬───────────────────────────────────────────────────────┤
+│   Server     │                                                       │
+│   Explorer   │            Active tool panel                          │
+│              │                                                       │
+│  ────────    │  (Dashboard / Query Editor /                          │
+│   Tool Nav   │   SP Stress Tester / Active Blockers / …)             │
+│  🏠 Dashboard│                                                       │
+│  🖊️ Query    │                                                       │
+│  ⚡ Stress   │                                                       │
+│  …           │                                                       │
+└──────────────┴───────────────────────────────────────────────────────┘
 ```
 
 | Area | Purpose |
 |------|---------|
-| **Header** | App title, active server/database, version number, theme toggle, Guide, Settings, Support |
+| **Title bar** | App title, active connection, version, theme toggle, Settings, Support |
+| **Tab bar** | Open tools appear as tabs; click to switch, × to close, drag outside to pop out |
 | **Server Explorer** | Create, manage, and switch between saved database connections |
-| **Tool Navigation** | Switch between tools: Dashboard, SP Stress Tester, SP Analyzer, Active Blockers, Wait Stats |
-| **Main content area** | The active tool's interface |
+| **Tool Navigation** | Click any tool to open it as a tab |
+| **Main content area** | The active tab's interface |
 
-### Theme Toggle
+### Theme
 
-The **☾ / ☀** button in the top-right header switches between light and dark mode. Your preference is saved and restored automatically on next launch.
-
----
-
-## 4. Dashboard
-
-The **Dashboard** is the home screen and launches automatically when SqlPulse opens. It provides a quick-launch grid for all available tools.
-
-Each tool card shows the tool's name, a short description, and an **Open** button. Click anywhere on a card (or its Open button) to navigate directly to that tool.
-
-Tools marked **Coming Soon** are visible but not yet available in this version. Currently available tools: SP Stress Tester, SP Analyzer, Active Blockers, Slow Queries, Permission Manager, and Wait Stats.
+The **☾ / ☀** button in the top-right header switches between light and dark mode. Your preference is saved automatically.
 
 ---
 
-## 5. Managing Connections
+## 4. Tab System
+
+SqlPulse works like a browser — each tool opens in its own **tab** so you can keep multiple tools running side-by-side.
+
+### Opening Tabs
+
+- Click a tool in the **left sidebar** navigation
+- Click a tool card on the **Dashboard**
+- Click **＋** in the tab bar to open a new Query Editor tab
+
+### Switching & Closing
+
+- Click a tab to bring it to the front
+- Click **×** on a tab to close it (the last tab cannot be closed)
+- Singletons (Dashboard, Blockers, etc.) focus their existing tab if already open; only **Query Editor** supports multiple tabs
+
+### Dot Indicators
+
+The sidebar shows a **teal dot** (●) next to tools that have an open tab, so you can see at a glance what is running.
+
+### Tear-Off — Pop a Tab into Its Own Window
+
+Drag any tab **outside the main window boundary** and release. SqlPulse detects the cursor leaving the window and immediately creates a new independent window for that tool.
+
+The new window:
+- Opens at your cursor position
+- Shows a minimal title bar (no tab bar, no chrome)
+- Keeps the server explorer sidebar so you can pick a connection
+- Runs completely independently — you can position it on a second monitor
+
+---
+
+## 5. Dashboard
+
+The Dashboard is the home screen. It provides a quick-launch grid for all available tools. Click any card or its **Open** button to open that tool in a new tab.
+
+Tools marked **Coming Soon** are visible but not yet active in this version.
+
+---
+
+## 6. Managing Connections
 
 All database connections are managed in the **Server Explorer** at the top of the left sidebar.
 
 ### Adding a Connection
 
-1. Click the **+** button at the top of the Server Explorer
+1. Click **+** at the top of the Server Explorer
 2. Fill in the connection details:
 
 | Field | Description |
 |-------|-------------|
 | **Profile name** | A friendly label, e.g. `Production` or `Dev-Local` |
-| **Server** | Hostname, IP address, or `server\instance` |
-| **Database** | The target database name |
-| **Authentication** | Authentication mode — see [Authentication Modes](#authentication-modes) below |
-| **Port** | Default is `1433` |
-| **Encrypt** | Enable TLS encryption for the connection |
-| **Trust server certificate** | Bypass certificate validation (useful for dev/self-signed certs) |
+| **Server** | Hostname, IP, or `server\instance` |
+| **Database** | Target database name |
+| **Authentication** | SQL Server, Windows (NTLM), Azure AD Password, or Azure Service Principal |
+| **Port** | Default `1433` |
+| **Encrypt** | Enable TLS encryption |
+| **Trust server certificate** | Bypass certificate validation (useful for dev/self-signed) |
 
-3. Click **Load** next to the Database field to browse available databases on the server (optional)
+3. Click **Load** next to Database to browse available databases (optional)
 4. Click **Add Server** to save
 
 ### Authentication Modes
 
-SqlPulse supports five authentication modes. The credential fields shown in the form change depending on the mode selected.
+| Mode | When to use |
+|------|------------|
+| **SQL Server** | Username + password login |
+| **Windows (NTLM)** | Domain authentication using your Windows credentials |
+| **Azure AD Password** | Entra ID username + password |
+| **Azure Service Principal** | Tenant ID + Client ID + Client Secret for automated access |
 
-**SQL Server Authentication**  
-Standard SQL login with a username and password. Works with any SQL Server instance.
+### Selecting a Database
 
-| Field | Description |
-|-------|-------------|
-| Username | SQL login name (e.g. `sa`) |
-| Password | SQL login password |
-| Save password | Store the password locally for automatic reconnection |
-
-**Windows Authentication (NTLM)**  
-Authenticates using a Windows domain account. Commonly used in on-premises environments.
-
-Enter the Windows credentials for the account you want to connect as — this is typically the same username and password you use to log into your computer or domain.
-
-| Field | Description |
-|-------|-------------|
-| Username | Windows username — enter as `username` or `DOMAIN\username` |
-| Domain | Active Directory domain name (optional if already included in the username) |
-| Password | Windows account password |
-
-> **Note:** If you enter `localhost` as the server, SqlPulse will automatically substitute your machine hostname — Windows Authentication does not support the `localhost` alias.
-
-**Azure AD — Password**  
-Authenticates against Microsoft Entra ID (formerly Azure Active Directory) using an organisational account and password. Requires the account to have MFA disabled or an app password configured.
-
-| Field | Description |
-|-------|-------------|
-| Email (UPN) | Entra ID user principal name, e.g. `user@contoso.onmicrosoft.com` |
-| Password | Entra ID account password |
-
-**Azure AD — MFA (Interactive)**  
-Opens a browser window for interactive sign-in, supporting all MFA methods (Authenticator app, SMS, FIDO2, etc.). The connection waits up to 2 minutes for sign-in to complete.
-
-| Field | Description |
-|-------|-------------|
-| Email (UPN) | Optional — pre-fills the email field in the browser sign-in prompt |
-
-> **Note:** There are no credentials to save for MFA — a browser prompt will appear each time a connection is opened. If you have the Azure CLI installed and are already signed in (`az login`), that credential will be used silently without a browser prompt.
-
-**Azure AD — Service Principal**  
-Authenticates using an Entra ID app registration. Intended for automated or non-interactive scenarios where a specific service identity should be used.
-
-| Field | Description |
-|-------|-------------|
-| Tenant ID | The Azure AD tenant (directory) ID |
-| Client ID | The application (client) ID of the app registration |
-| Client Secret | The client secret value from the app registration |
-| Save client secret | Store the secret locally for automatic reconnection |
-
-> **Azure SQL requirement:** For any Azure AD authentication mode, enable **Encrypt** in the connection settings. Azure SQL does not accept unencrypted connections.
-
-### Switching Connections
-
-Click any saved connection in the sidebar to make it active. The active connection is shown in the header. Switching connection resets the procedure selection.
-
-### Editing or Deleting a Connection
-
-Hover over a connection in the sidebar to reveal the edit (pencil) and delete (trash) icons.
+Click any saved server in the explorer to expand it, then click a database to make it the active connection. The active connection is shown in the connection pill at the top of the explorer.
 
 ---
 
-## 6. Selecting a Stored Procedure
+## 7. Query Editor
 
-With an active connection, open the **SP Stress Tester** tool. The **Procedure** panel at the top of the **New Test** tab lets you select which stored procedure to test.
+The **Query Editor** is a full SQL editor with IntelliSense, object browser, and result export — similar to SSMS but built into SqlPulse.
 
-1. Click **Load Procedures** — SqlPulse queries `sys.procedures` and populates the list
-2. Select a procedure from the dropdown
-3. Click **Load Parameters** — SqlPulse introspects the procedure signature and populates the parameter table
+### Opening the Query Editor
 
-The procedure name always appears alongside the active tab title so you know what is being tested at a glance.
+- Click **🖊️ Query Editor** in the sidebar
+- Click **＋** in the tab bar for an additional query window
+- You can have **multiple Query Editor tabs** open at once, each with its own SQL and results
+
+### Interface Layout
+
+```
+┌──────────────────────────────────────────────────────────┐
+│  Object Browser  │  Query 1 │ Query 2 │ +               │
+│                  ├──────────────────────────────────────-│
+│  Tables          │  ▶ Execute  Clear  💾 Save  F5·Ctrl+↵ │
+│  Views           ├──────────────────────────────────────-│
+│  Stored Procs    │                                        │
+│  Functions       │   Monaco SQL Editor                   │
+│  Saved Queries   │                                        │
+│                  ├──────────────────────────────────────-│
+│                  │  ═══ drag to resize ══════════════════ │
+│                  ├──────────────────────────────────────-│
+│                  │  Results │ Messages │  ⬇ CSV  ⬇ Excel │
+│                  │  Grid…                                 │
+└──────────────────┴────────────────────────────────────────┘
+```
+
+### Object Browser
+
+The left panel lists all objects in the connected database:
+
+- **Tables** — click once to select, **double-click** to generate `SELECT TOP 100 *`
+- **Views** — double-click to generate a SELECT
+- **Stored Procedures** — double-click to generate an `EXEC` with all parameters listed
+- **Functions** — double-click to generate a function call
+- **Saved Queries** — your saved SQL snippets (see [Saving Queries](#saving-queries))
+
+Use the **Filter** box at the top to search across all object types.
+
+Click **⟳** to refresh the object list after schema changes.
+
+### Writing SQL
+
+The editor uses **Monaco** (the same engine as VS Code) with:
+
+- **SQL syntax highlighting**
+- **IntelliSense**: table names, column names, views, stored procedures, functions, and schemas all auto-complete as you type
+- When you double-click a table/view, column completions for that table are also registered
+
+### Executing Queries
+
+| Action | Result |
+|--------|--------|
+| **F5** | Execute current query |
+| **Ctrl+Enter** | Execute current query |
+| **▶ Execute** button | Execute current query |
+
+Results appear below the editor. Multiple result sets (from batches or `EXEC`) each get their own tab. The result grid shows row numbers, column names, and `NULL` in italics.
+
+### Query Tabs (within the editor)
+
+Click **+** in the editor's inner tab bar to open another SQL buffer. Each tab has its own:
+- SQL text
+- Result grid
+- Executing state
+- Resizable results panel height
+
+Tab names start at **Query 1, 2, 3…** and update to the saved name if you save the query.
+
+### Resizable Results Panel
+
+Drag the **horizontal divider** between the editor and results up or down to resize. Each query tab remembers its own height.
+
+### Saving Queries
+
+Press **Ctrl+S** or click the **💾 Save** button in the toolbar:
+
+1. An inline name field appears — type a name and press **Enter** (or click Save)
+2. The query is saved to SQLite and appears in the **Saved Queries** section of the object browser
+3. Subsequent Ctrl+S on the same tab **updates** the saved query in place
+
+To load a saved query: **double-click** it in the Saved Queries list — it loads into the active editor tab.
+
+To delete a saved query: hover it in the list and click **✕**.
+
+### Exporting Results
+
+When the result grid has data, **⬇ CSV** and **⬇ Excel** buttons appear in the results bar:
+
+- **CSV**: instant client-side download, no size limit
+- **Excel**: dynamic xlsx generation, opens as a formatted workbook
 
 ---
 
-## 7. Configuring Parameters
+## 8. SP Stress Tester
 
-Each parameter discovered from the procedure signature appears as a row in the parameter table. For each parameter, choose a **mode**:
+The SP Stress Tester lets you load test stored procedures under realistic concurrent traffic.
 
-### Static
-A fixed value is used for every execution. Enter the value in the **Value** field.
+### Setting Up a Test
 
-```
-@CustomerId   int   static   42
-```
+1. Open the **SP Stress Tester** from the sidebar or Dashboard
+2. Select a stored procedure from the dropdown (or type its name)
+3. Configure parameters — each parameter can be:
+   - **Static** — a fixed value for every execution
+   - **Random** — int range, float range, GUID, string length, or pick from a list
+   - **CSV** — values cycled from a column in a CSV file you upload
 
-### Random
-SqlPulse generates a random value within the constraints you specify. Options:
-
-| Sub-type | Description |
-|----------|-------------|
-| **Integer** | Random integer between a min and max value |
-| **Float** | Random decimal between a min and max value |
-| **GUID** | New UUID per execution |
-| **String** | Random alphanumeric string of a specified length |
-| **List** | Pick randomly from a comma-separated list of values |
-
-```
-@CustomerId   int   random   min: 1, max: 100000
-```
-
-### CSV
-Upload a CSV file and map a column to the parameter. SqlPulse rotates through the values in the file, cycling back to the top when the end is reached. This is the most realistic mode — use it with a sample of your actual production data.
-
-```
-@CustomerId   int   csv   customers.csv → customer_id column
-```
-
-> **Tip:** Use CSV mode with a representative data sample to avoid testing against artificially hot or cold cache states.
-
----
-
-## 8. Running a Stress Test
-
-In the **New Test** tab, configure the test parameters in the **Test Configuration** panel:
-
-| Setting | Description | Default |
-|---------|-------------|---------|
-| **Concurrency** | Number of parallel workers making simultaneous requests | 10 |
-| **Total executions** | Total number of SP calls across all workers | 100 |
-| **Delay between executions (ms)** | Per-worker pause between successive calls. `0` means fire immediately after each result | 0 |
-| **Ramp-up duration (seconds)** | Time over which workers are gradually started. `0` means all workers start simultaneously | 0 |
-| **Capture result sets** | Records the rows returned by the SP (up to a configurable limit) | Off |
-| **Max rows per execution** | When capture is enabled, the maximum rows stored per execution (1–10) | 5 |
-
-Click **▶ Start Stress Test** to begin. SqlPulse switches automatically to the **Results** tab and begins streaming live metrics.
-
-Click **■ Stop Test** at any time to halt the run. In-flight executions complete before stopping.
-
-### Understanding Concurrency vs. Total Executions
-
-- **Concurrency** controls how many workers run in parallel. A worker immediately starts its next execution as soon as the previous one completes.
-- **Total executions** is the global counter. Once the combined execution count across all workers reaches this number, the test ends.
-
-*Example:* Concurrency = 10, Total executions = 1000 → ten workers each run approximately 100 executions.
-
----
-
-## 9. Live Progress
-
-While a test is running, the **Results** tab shows a live dashboard:
-
-### Progress Bar
-Shows how many executions have completed out of the total planned.
-
-### Metric Cards
-Eleven live-updating cards:
-
-| Metric | Description |
-|--------|-------------|
-| **Successes** | Executions that completed without error |
-| **Failures** | Executions that returned an error |
-| **Success rate** | Successes as a percentage of completed executions |
-| **Avg round-trip** | Mean execution duration |
-| **Min round-trip** | Fastest single execution |
-| **Max round-trip** | Slowest single execution |
-| **P50** | Median — 50% of executions were faster than this |
-| **P95** | 95% of executions were faster than this |
-| **P99** | 99% of executions were faster than this |
-| **Throughput** | Executions per second across all workers |
-| **Elapsed** | Wall-clock time since the test started |
-
-### Live Charts
-Two line charts update in real time (sampled once per second):
-
-- **Throughput over time** — shows whether throughput is stable, ramping up, or degrading
-- **Avg latency over time** — shows whether response time is stable or drifting
-
-Charts appear after 3 or more data points have been collected.
-
----
-
-## 10. Test Results
-
-When a test completes (or is stopped), the full results panel loads below the live metrics.
-
-### Run Information Card
-A summary of the test configuration: procedure name, status, start/end times, elapsed duration, concurrency, planned vs. completed execution count, and the server/database used.
-
-### Insights
-SqlPulse automatically analyses the results and generates 2–5 observation cards. Each card is colour-coded:
-
-| Colour | Meaning |
-|--------|---------|
-| **Green** | Positive finding (e.g. perfect success rate, consistent response times) |
-| **Amber** | Warning that warrants investigation |
-| **Blue** | Informational observation |
-
-Example insights:
-
-> ⚠ **High tail latency** — P99 (2.3 s) is 14× P50 (165 ms). Suggests occasional lock contention or non-covered index scans affecting a minority of requests.
-
-> ✓ **Perfect success rate** — All 1,000 executions succeeded.
-
-> ⚠ **Failures appear time-clustered** — 16 of 18 failures occurred in a 4-second window at t+42s. Suggests a cascading event rather than a per-row issue.
-
-### Metric Grid
-The same eleven metric cards from the live view, now showing final values.
-
-### Frozen Charts
-The throughput and latency charts from the live run, preserved as a permanent record of the run's shape.
-
-### Duration Histogram
-A bar chart bucketing all executions by duration into 10 equal-width ranges. Bars are coloured green (fast) through red (slow). The histogram reveals the distribution of execution times — whether the workload is tight and consistent or has a long tail.
-
-Shown when a run has 10 or more recorded executions.
-
-### Individual Executions Table
-A paginated table (50 rows per page) of every recorded execution, showing:
-
-- Execution index
-- Start time and offset from run start
-- Duration
-- Success / failure indicator
-- Error message (for failures)
-
-The table is **sortable** by execution index, start time, duration, or status. It is **filterable** to show only successes or only failures. Click any row to expand it and view the exact parameter values used for that execution.
-
-### Error Breakdown
-When failures occur, a summary table groups identical error messages and shows their count. This makes it easy to see whether failures are caused by a single recurring issue or multiple distinct problems.
-
-### Parameters Summary
-A table listing each parameter, its type, and the mode used (static / random / CSV).
-
----
-
-## 11. Concurrency Sweep
-
-The **⚡ Sweep** tab runs your stored procedure at a series of concurrency levels automatically, then shows you how performance scales — and where it breaks down.
-
-This answers the question: *"What is the optimal number of concurrent workers for this procedure?"*
-
-### Configuration
-
-**Tier presets:**
-
-| Preset | Tiers |
-|--------|-------|
-| Light | 1, 5, 10, 25 |
-| Standard | 1, 5, 10, 25, 50, 100 |
-| Heavy | 1, 10, 25, 50, 100, 200 |
-| Custom | Comma-separated list you define |
-
-**Other settings:**
+### Test Configuration
 
 | Setting | Description |
 |---------|-------------|
-| **Executions per tier** | How many SP calls to run at each concurrency level |
-| **Delay between executions** | Per-worker delay, same as a regular test |
-| **Ramp-up duration** | Gradual worker startup, same as a regular test |
+| **Concurrency** | Number of simultaneous executions |
+| **Total executions** | Total calls to make across all threads |
+| **Delay between (ms)** | Pause between each thread's executions |
+| **Ramp-up (s)** | Gradually increase from 1 to full concurrency over this duration |
+| **Capture results** | Store the first N rows of each result set (for correctness checks) |
 
-Click **⚡ Run Concurrency Sweep** to begin. Each tier runs sequentially. A progress bar shows the current tier and how many have completed.
+### Running the Test
 
-### Sweep Results
+Click **▶ Run Test**. Switch to the **● Live** tab to watch real-time metrics:
 
-Results update after each tier completes.
+- **Throughput** — executions/second chart
+- **Avg latency** — average round-trip time chart
+- **Success rate** — % of executions that completed without error
+- **P50 / P95 / P99** — latency percentiles
 
-**Sweet Spot Card**
+Click **■ Stop** to halt early. Results from partial runs are still saved.
 
-SqlPulse detects the point where additional concurrency stops paying off:
+### Concurrency Sweep
 
-> ⚡ **Sweet Spot: 25 workers**  
-> Peak throughput of 412 req/s at 25 workers. Beyond this, P95 degrades 68% while throughput gains only 8%.
+The **⚡ Sweep** tab runs the same procedure at multiple concurrency levels automatically and charts the results, letting you find the saturation point where latency degrades.
 
-**Dual-Axis Chart**
+1. Configure tier levels (e.g. 1, 5, 10, 25, 50, 100)
+2. Set executions per tier
+3. Click **▶ Run Sweep**
 
-A single chart plots both:
-- **Throughput (req/s)** — left Y-axis, cyan line
-- **P95 latency (ms)** — right Y-axis, orange line
-
-Both plotted against concurrency on the X-axis. The sweet spot is typically where the orange line begins to rise sharply while the cyan line flattens.
-
-**Tier Results Table**
-
-One row per completed tier showing: Workers | Throughput | Avg | P50 | P95 | P99 | Success Rate | Executions. The optimal tier is highlighted.
-
-> **Note:** A sweep uses the currently selected procedure and parameter configuration from the **New Test** tab. Ensure your procedure and parameters are configured before switching to the Sweep tab.
+The chart shows throughput and average latency across tiers. The sweet spot is usually just before latency starts climbing steeply.
 
 ---
 
-## 12. SP Performance Analyzer
+## 9. SP Performance Analyzer
 
-The SP Performance Analyzer diagnoses a stored procedure's performance using SQL Server's own internal signals — execution plan cache, missing index recommendations, index usage statistics, wait events, and query-level hotspots. No stress test required.
+The SP Performance Analyzer inspects a stored procedure's execution plan, missing indexes, wait statistics, parameter sniffing, and statement-level hotspots.
 
-To open it, select a procedure in the **New Test** tab and click the **🔍 Analyze SP** button, or navigate directly to **SP Analyzer** in the tool sidebar.
-
-### Collection Modes
+### Modes
 
 | Mode | Description |
 |------|-------------|
-| **Static** | Reads cached DMV data only. Safe — the SP is never executed. Works any time the procedure has been run at least once since the last SQL Server restart. |
-| **With Execution** | Runs the SP once with the parameters you provide, then captures a live delta of server wait stats alongside all static signals. Use this when the plan cache is cold or you want to confirm current behaviour. |
+| **Static** | Reads cached plan data from DMVs — no execution needed |
+| **With Execution** | Runs the procedure, captures before/after wait stats, then analyses |
 
-### Running an Analysis
+### Signals Reported
 
-1. Select a procedure in the **New Test** tab, then click **🔍 Analyze SP** — or open **SP Analyzer** from the sidebar
-2. Choose **Static** or **With Execution** mode
-3. In execution mode, click **Load Params** to populate the parameter table, then fill in values
-4. Click **Run Analysis**
-
-Results are organised into five tabs:
-
-#### Summary
-
-A severity score (0–100) and a prioritised list of the most important signals found. Start here — it tells you where to look first.
-
-#### Statements
-
-Per-statement execution statistics pulled from the plan cache. Shows each statement within the procedure ranked by total elapsed time, CPU usage, and logical reads. Use this to identify the exact line causing the most overhead.
-
-Requires the procedure to have been executed at least once since the last SQL Server restart.
-
-#### Warnings
-
-Query plan warnings extracted directly from the cached execution plan:
-
-| Warning | What it means |
-|---------|---------------|
-| **Implicit conversion** | A parameter or column type mismatch is forcing SQL Server to convert values at runtime, which can prevent index seeks and cause full scans |
-| **No join predicate** | A join between two tables has no ON clause — produces a cross join and typically indicates a query bug |
-
-#### Indexes
-
-Three sections covering index health for the procedure's referenced tables:
-
-**Missing Index Suggestions** — indexes SQL Server recommends creating. When the procedure's execution plan is cached, suggestions are read directly from that plan (SP-specific). When the plan is not cached, suggestions are sourced from the DMV filtered to tables this SP directly references. Each suggestion shows:
-- Impact percentage — SQL Server's estimate of the query performance improvement if the index is created
-- Key columns (equality and inequality predicates)
-- Include columns
-- A ready-to-run CREATE INDEX script
-
-**Existing Indexes** — all indexes on the procedure's referenced tables, with usage counters (seeks, scans, lookups, updates) since the last SQL Server restart. Indexes with zero activity are flagged **UNUSED**. Indexes with significantly more scans than seeks are flagged **scan-heavy** (often a sign of a missing or poorly-designed index).
-
-> A note below the table shows when SQL Server last restarted. Indexes marked UNUSED may have been active before that point.
-
-**Key Lookups (Plan-Verified)** — detected directly from the execution plan XML. A key lookup means SQL Server found a row in a nonclustered index but then had to fetch additional columns from the clustered index, causing extra IO. Each entry shows the affected table, the driving nonclustered index, and how many times per query execution the lookup is estimated to occur. The fix is to extend the nonclustered index's INCLUDE clause to cover the fetched columns.
-
-#### Execution
-
-Cached execution statistics for the procedure: average duration, CPU time, logical reads, physical reads, writes, execution count, and last execution time.
-
-In **With Execution** mode, a **Wait Stats Delta** section shows the server-wide wait types that accumulated during the execution window. This is an approximation — it includes waits from all concurrent queries on the server, not just this SP — but a dominant wait type is usually a meaningful signal.
-
-### Exporting
-
-Click **⬇ PDF Report** to export a full analyzer report including all signals, index scripts, and warnings.
-
-### AI Analysis
-
-The **Analyze with AI** button will provide a structured diagnosis — root cause classification, prioritised recommendations, suggested index scripts, and an optionally rewritten version of the procedure. This feature is currently marked *Coming Soon* while usage management is finalised.
+- **Execution stats** — avg elapsed, CPU, logical reads from plan cache
+- **Missing indexes** — from the cached execution plan or `sys.dm_db_missing_index_*`
+- **Key lookups** — clustered index lookups visible in the plan
+- **Statement hotspots** — the slowest individual statements within the SP
+- **Index usage** — seeks, scans, lookups on tables the SP touches
+- **Plan warnings** — implicit conversions and missing join predicates
+- **Parameter sniffing** — compiled vs runtime parameter values
+- **Statistics staleness** — tables with high modification counters or old stats
 
 ---
 
-## 13. Active Blockers
+## 10. Active Blockers
 
-The **Active Blockers** tool gives you a real-time view of SQL Server blocking chains — which sessions are holding locks, which sessions are waiting, and how long they have been waiting. Use it to diagnose live performance incidents or to watch for blocking patterns during a stress test.
+The Active Blockers tool shows real-time blocking chains on the connected SQL Server.
 
-Navigate to **Active Blockers** in the tool sidebar to open it.
+### Reading the Display
 
-### How It Works
+Sessions are shown in a tree: **head blocker** at the root, blocked sessions as children. Each row shows:
 
-Active Blockers queries `sys.dm_exec_requests`, `sys.dm_exec_sessions`, and `sys.dm_exec_sql_text` to build a blocking tree. It refreshes on a configurable interval (or on demand) and displays results as an indented chain — head blocker at the top, blocked sessions indented beneath it.
-
-> **Permission required:** The tool needs `VIEW SERVER STATE` to read the DMVs. If your login does not have this permission, a notice is shown at the top of the panel.
-
-### Summary Bar
-
-Four metric cards update on every refresh:
-
-| Card | Description |
-|------|-------------|
-| **Head Blockers** | Number of distinct sessions that are blocking at least one other session |
-| **Blocked** | Total number of sessions currently waiting on a lock held by another session |
-| **Max Wait** | Longest individual wait time across all blocked sessions |
-| **Total Wait** | Sum of all blocked sessions' wait times |
-
-### Blocking Chains
-
-Each blocking chain is shown as a card group. The **HEAD BLOCKER** card is highlighted in red and shows:
-
-- **SPID** — SQL Server process ID
-- **Wait time** — how long this session has been holding the blocking lock
-- **Procedure / query** — the stored procedure name or a truncated preview of the SQL text
-- **Wait type and hint** — the lock type being held (e.g. `LCK_M_X — Exclusive lock — waiting on row write`)
-- **Login, host, and application** — who and what is running the session
-- **Open transaction count** — number of uncommitted transactions
-
-Blocked sessions are shown below the head blocker, indented with a connector line. Each blocked session card shows the same fields plus its own wait time.
-
-### Refresh Options
-
-Use the **Refresh** controls in the toolbar to configure how often the view updates:
-
-| Option | Behaviour |
-|--------|-----------|
-| **Manual** | Only refreshes when you click the refresh button |
-| **5s / 15s / 30s** | Auto-refreshes on the selected interval |
-
-A **Live** badge pulses in the toolbar when auto-refresh is active. The last-refreshed timestamp is shown to the right.
-
-### Killing a Session
-
-Each HEAD BLOCKER card has a **Kill SPID** button. Clicking it opens a confirmation modal showing the SPID, login, host, application, and the SQL text about to be killed. Confirm to issue `KILL <spid>` against the server.
-
-> **Use with caution.** Killing a session rolls back any open transaction and immediately releases its locks, unblocking all downstream sessions. However, killing the wrong session can cause data loss or leave application state inconsistent. Always verify the session details before confirming.
-
-> **Permission required:** Killing a session requires `ALTER ANY CONNECTION` (or `sysadmin`).
-
-### When There Are No Blockers
-
-If no blocking chains are detected, the panel shows a green confirmation that the server is clear. The summary bar still updates to confirm zero head blockers and zero blocked sessions.
-
----
-
-## 14. Permission Manager
-
-Permission Manager helps DBAs and application owners inspect and change SQL Server access from one controlled workflow. It starts with a read-only analysis of a login, then lets privileged users prepare common permission changes with an explicit SQL preview before anything is executed.
-
-### Analyze a Login
-
-1. Open **Permission Manager** from the dashboard or left navigation
-2. Search for a SQL Server login, Windows login, or Windows group
-3. Click **Analyze Permissions**
-4. Review the login summary, server roles, explicit server permissions, database mappings, and object-level grants or denies
-
-High-impact roles such as `sysadmin`, `securityadmin`, `serveradmin`, `db_owner`, and `db_securityadmin` are visually highlighted so they stand out during review.
-
-### Permission Sections
-
-| Section | Meaning |
-|---------|---------|
-| Server Roles | Fixed server role memberships such as `sysadmin`, `securityadmin`, or `bulkadmin` |
-| Explicit Server Permissions | Direct server-level grants such as `VIEW SERVER STATE` |
-| Database Access | Database users mapped to the login and their database role memberships |
-| Object-Level Permissions | Direct GRANT, DENY, or GRANT WITH GRANT OPTION entries on tables, views, and procedures |
-| Actions | Guarded changes for login status, server roles, database roles, and object permissions |
-
-### Safe Action Workflow
-
-Permission Manager does not hide the SQL it plans to run.
-
-1. Choose an action in the **Actions** section
-2. Fill in the role, database, user, object, or permission fields
-3. Click **Preview SQL**
-4. Review the generated script and any warnings
-5. Click **Execute Action** only after confirming the script is correct
-
-After a successful action, SqlPulse refreshes the permission analysis so the current view reflects the new server state.
-
-### Supported Actions
-
-| Action | Examples |
-|--------|----------|
-| Enable / Disable Login | `ALTER LOGIN [app_user] DISABLE` |
-| Server Role Membership | Add or remove a login from `securityadmin`, `bulkadmin`, or `sysadmin` |
-| Server Permission | GRANT, DENY, or REVOKE server-level permissions such as `VIEW SERVER STATE` |
-| Database Role Membership | Add or remove a database user from roles such as `db_datareader` or `db_owner` |
-| Object Permission | GRANT, DENY, or REVOKE permissions such as `EXECUTE`, `SELECT`, or `UPDATE` on a specific object |
-| Export JSON | Download the current permission analysis for review or audit evidence |
-
-### Required Permissions
-
-Analysis requires enough visibility to read server principals, server permissions, database principals, and database permissions. In many environments this means `VIEW SERVER STATE` plus `VIEW ANY DATABASE`, although highly privileged roles may already include the needed access.
-
-Actions run as the active SqlPulse connection. For example, changing server role membership requires appropriate server-level rights, while changing database roles or object grants requires appropriate rights in the target database.
-
-### Permission Manager FAQ
-
-**Why is sysadmin highlighted?**  
-`sysadmin` bypasses normal permission checks and effectively grants full control over the SQL Server instance. Treat additions and removals as high-risk administrative changes.
-
-**Why do I need to preview SQL first?**  
-Permission changes are security-sensitive. The preview step makes the exact SQL visible, reviewable, and copyable before SqlPulse executes it.
-
-**What is the difference between explicit and effective permissions?**  
-Explicit permissions are direct grants or denies visible in catalog views. Effective permissions are the final runtime result after roles, inherited memberships, ownership chains, and denies are applied. Permission Manager currently focuses on visible grants, roles, and guarded actions.
-
-**Why did an action fail even though the preview looked valid?**  
-The preview validates and formats the SQL, but SQL Server still enforces permissions at execution time. Use a connection with the required administrative rights for the target change.
-
----
-
-## 15. Wait Stats
-
-The **Wait Stats** tool gives you a server-wide view of SQL Server wait statistics — the single best signal for understanding what your server is spending time on. Use it to diagnose CPU pressure, I/O bottlenecks, lock contention, memory grants, and more.
-
-Navigate to **Wait Stats** in the tool sidebar or click its card on the Dashboard to open it.
-
-> **Permission required:** The tool reads `sys.dm_os_wait_stats` and `sys.dm_os_sys_info`, both requiring `VIEW SERVER STATE`. If your login does not have this permission, a notice is shown. Ask your DBA to run: `GRANT VIEW SERVER STATE TO [your_login];`
-
-### How It Works
-
-Wait Stats queries SQL Server's `sys.dm_os_wait_stats` DMV, which accumulates every wait event since the last SQL Server restart. SqlPulse filters out benign background waits (idle scheduler sleeps, log cache flushes, etc.) and shows you the top 35 meaningful wait types ranked by cumulative wait time.
-
-Results are **cumulative since the last SQL Server restart** — they are not a snapshot of right now. A dominant wait type at the top of the list means that wait has been the biggest contributor to wait time since the server started. For a server with a long uptime, this smooths out short spikes; use the **Refresh** button to compare values over time.
-
-### Summary Bar
-
-Four cards at the top of the panel:
-
-| Card | Description |
-|------|-------------|
-| **SQL Server Uptime** | How long since the server last restarted, and the exact restart timestamp |
-| **Total Wait Time** | Cumulative non-benign wait time across all wait types since restart |
-| **Signal Wait %** | The percentage of total wait time spent waiting for a CPU scheduler slot (as opposed to an external resource). A healthy server is under 5%. Values above 10% indicate CPU pressure. |
-| **Wait Types** | Number of non-benign wait types with at least one waiting task |
-
-The **Signal Wait %** card is colour-coded:
-
-| Value | Colour | Interpretation |
-|-------|--------|----------------|
-| < 5% | Neutral | CPU pressure normal |
-| 5–9% | Yellow | Some CPU pressure |
-| 10–24% | Orange | CPU pressure elevated — investigate |
-| ≥ 25% | Red | CPU pressure critical — urgent |
-
-### Wait Categories
-
-Below the summary bar, a row of chips groups all detected wait types by category:
-
-| Category | What it covers |
-|----------|----------------|
-| **I/O** | Disk reads/writes — `PAGEIOLATCH_*`, `WRITELOG`, `ASYNC_IO_COMPLETION` |
-| **CPU** | CPU scheduling pressure — `SOS_SCHEDULER_YIELD`, `THREADPOOL` |
-| **Memory** | Query memory grants, allocation contention — `RESOURCE_SEMAPHORE`, `CMEMTHREAD` |
-| **Lock** | Row/page/table lock waits — `LCK_M_*` |
-| **Latch** | In-memory page and non-buffer latches — `PAGELATCH_*`, `LATCH_*` |
-| **Parallelism** | Parallel query thread synchronisation — `CXPACKET`, `CXCONSUMER` |
-| **Network** | Client fetch lag — `ASYNC_NETWORK_IO` |
-| **HA/DR** | Always On / mirroring — `HADR_*` |
-| **In-Memory** | In-Memory OLTP — `XTP_*` |
-| **Other** | Wait types not in a named category |
-
-Each chip shows the category's **percentage of total wait time** and the **highest severity** wait type within it (critical / high / medium / low / info). This lets you immediately see which pressure type is dominant.
-
-### Top Wait Types Table
-
-The main table lists each non-benign wait type with:
-
-| Column | Description |
-|--------|-------------|
-| **Wait Type** | SQL Server wait type name, colour-coded by severity |
-| **Category** | Which pressure category the wait belongs to |
-| **% Total** | Percentage share of all non-benign wait time, shown as a bar |
-| **Total Wait** | Cumulative wait time since SQL Server restart |
-| **Tasks** | Number of tasks that have waited on this type since restart |
-| **Max Wait** | Single longest wait recorded for this type |
-| **Signal Wait** | Portion of wait time spent waiting for a CPU slot |
-
-**Sortable:** Click the **Sort by** buttons (Total Wait / % of Total / Task Count / Max Wait) to re-rank the table.
-
-**Expandable rows:** Click any row to expand it. The expanded view shows:
-- A description of what the wait type means
-- A recommended action — what to investigate or fix
-
-For example, clicking `WRITELOG` shows:
-> *Waiting for transaction log to flush to disk (log write or commit).* **Recommended action:** Move log to faster disk (SSD). Check for excessive small transactions. Consider batching.
-
-### Interpreting Common Waits
-
-**`SOS_WORK_DISPATCHER` / `QDS_*` / `DIRTY_PAGE_POLL`** — These are SQL Server background housekeeping waits. They are not harmful. If they dominate the top of your list it just means your server is mostly idle or running background tasks, and actual query waits are proportionally small.
-
-**`CXPACKET` high, `SOS_SCHEDULER_YIELD` also high** — Parallel queries competing for CPU. Review your `MAXDOP` setting and `Cost Threshold for Parallelism`.
-
-**`PAGEIOLATCH_SH` / `PAGEIOLATCH_EX` dominant** — Your working set exceeds available RAM. SQL Server is reading/writing pages from disk frequently. Adding RAM is the most direct fix.
-
-**`LCK_M_X` or `LCK_M_S` dominant** — Lock contention. Use Active Blockers to identify who is blocking, and investigate transaction design or isolation level.
-
-**`WRITELOG` dominant** — Log flush is a bottleneck. Move your transaction log to a dedicated fast disk (SSD / NVMe).
-
-**`RESOURCE_SEMAPHORE` dominant** — Queries are waiting for memory grants (for sorts and hash joins). Add RAM or tune queries to reduce sort/hash memory requirements.
-
-### AI Analysis
-
-The **✦ AI Analysis** button appears in the top bar once wait stats have been loaded. Clicking it sends the top 15 wait types, signal wait %, total wait time, and server uptime to the AI for a structured diagnosis.
-
-The AI result panel shows:
-
-| Section | Description |
-|---------|-------------|
-| **Verdict** | **Healthy** (green) / **Warning** (amber) / **Critical** (red) — with a one-sentence headline citing specific numbers |
-| **Confidence** | How strongly the data supports the verdict (high / medium / low) |
-| **Primary Pressure** | The dominant wait category driving the assessment |
-| **Summary** | 2–3 sentences in plain language: what the pattern means, likely cause, and risk if unaddressed |
-| **Key Findings** | Specific observations with numbers tied to your actual wait data |
-| **Recommendations** | Up to 4 prioritized actions, each tagged High / Medium / Low impact |
-| **Watch List** | Specific wait types to keep monitoring on subsequent refreshes |
-
-The AI is trained to distinguish **background noise** (e.g. `SOS_WORK_DISPATCHER`, `QDS_*`, `DIRTY_PAGE_POLL`) from genuine performance signals — so on a healthy or lightly-loaded server, the verdict will correctly reflect that rather than generating false alarms.
-
-Click **✦ Re-analyze** after a Refresh to get a fresh diagnosis on the updated data.
-
-### Refresh
-
-Click **⟳ Refresh** to re-query the server. The **Updated** timestamp shows when the last successful fetch completed. Wait Stats does not auto-refresh — use manual refresh to take snapshots over time and observe whether values are growing.
-
----
-
-## 16. Test History
-
-The **History** tab lists the last 100 test runs, newest first.
-
-### Columns
-
-| Column | Description |
-|--------|-------------|
-| Time | When the run started |
-| Connection | Server and database the run was executed against |
-| Procedure | The stored procedure that was tested |
-| Concurrency | Worker count used |
-| Executions | Completed / planned |
-| Success | Success rate percentage |
-| Avg ms | Mean round-trip duration |
-| Throughput | Executions per second |
-| Status | completed / stopped / error |
-
-### Filtering by Connection
-
-If your history contains runs from multiple connections, a **Connection** dropdown appears above the table. Select a connection to show only runs from that server/database. The dropdown includes a run count per connection.
+- Session ID, login, host, database
+- Current command and wait type
+- Wait time, blocking session
+- SQL snippet currently executing
 
 ### Actions
 
-| Button | Description |
-|--------|-------------|
-| **Details** | Load the full results for this run into the Results tab |
-| **Reuse** | Restore the run's procedure, parameters, and connection to the New Test tab |
-| **Refresh** | Reload history from disk |
-| **Clear History** | Permanently delete all history records (with confirmation) |
+- **Kill Session** — terminates the selected session (requires `ALTER ANY CONNECTION` permission)
+- **⟳ Refresh** — manual refresh
+- **Auto-refresh** — toggle automatic refresh every few seconds
 
 ---
 
-## 17. Comparing Runs
+## 11. Wait Stats
 
-Any two historical runs can be compared side by side.
+The Wait Stats tool shows server-wide wait statistics normalised per day of uptime, with categorisation and context.
 
-1. Check the checkbox next to two runs in the History table
-2. Click **Compare selected** — the comparison panel appears above the table
-3. Click **Close** to dismiss it
+### Categories
 
-### Comparison Panel
+Waits are grouped into: CPU, I/O, Lock, Memory, Network, Parallelism, and Other. The category chart gives a quick overview of where the server is spending time.
 
-The panel shows Run A and Run B side by side with a **vs A** delta column for Run B. Each metric row shows:
+### Reading the Table
 
-- The raw value for each run
-- A percentage delta with a direction indicator
+| Column | Meaning |
+|--------|---------|
+| **Wait type** | SQL Server wait type name |
+| **Wait / day (ms)** | Milliseconds of total wait normalised to a 24-hour period |
+| **Tasks / day** | Number of waiting tasks per day |
+| **Category** | High-level grouping |
+| **Signal %** | Proportion of wait that is runnable (CPU) vs actual waiting |
 
-Delta colouring:
+High **Signal %** on a wait type indicates the server may be CPU-bound even for that wait.
 
-- **Green** — Run B improved on Run A (lower is better for latency; higher is better for throughput/success rate)
-- **Red** — Run B regressed relative to Run A
+### AI Analysis
 
-Metrics compared: Avg duration, P50, P95, P99, Min, Max, Throughput, Success rate, Execution count.
-
-> **Common use case:** Run a test before and after an index change or query rewrite, then compare the two runs to measure the improvement.
-
----
-
-## 18. Exporting Results
-
-From the **Results** panel, two export formats are available:
-
-### PDF Report
-
-Click **⬇ PDF Report** to generate a professionally formatted PDF containing:
-
-- SqlPulse branding and report header
-- Test configuration summary
-- Full performance metrics
-- Parameters table
-- Individual executions table
-- Error breakdown (if applicable)
-- Page numbers and footer
-
-The PDF is suitable for sharing with stakeholders, filing in a ticket, or archiving for compliance.
-
-### Excel Export
-
-Click **⬇ Excel Export** to generate a `.xlsx` workbook with four sheets:
-
-| Sheet | Contents |
-|-------|----------|
-| **Summary** | Test configuration and all performance metrics |
-| **Parameters** | Each parameter, its type, and mode configuration |
-| **Executions** | Every recorded execution with its parameter values, duration, and outcome |
-| **Errors** | Error message breakdown (if applicable) |
-
-The Excel export is useful for further analysis, charting in Excel, or importing into reporting tools.
+Click **✨ Analyse with AI** to get a plain-English interpretation of the top waits, likely root causes, and recommended actions.
 
 ---
 
-## 19. Settings & License
+## 12. Slow Queries
 
-Click **⚙ Settings** in the top-right header to open the settings modal.
+The Slow Queries tool surfaces the most expensive queries from SQL Server's plan cache and shows currently-executing requests.
 
-### License Information
+### Plan Cache Tab
 
-The settings panel shows your active license details:
+Queries are ranked by total elapsed time, CPU, logical reads, or execution count. For each query you can see:
 
-| Field | Description |
-|-------|-------------|
-| License key | Masked key with last 4 characters visible |
-| Status | Active / Trial / Offline / Expired |
-| Activated | Date the license was first activated |
-| Expires | Expiry date, or "Never" for perpetual licenses |
-| Activations | Number of activated machines vs. your plan limit |
-| Subscription | Billing interval and current period end date (subscription plans) |
-| Registered machines | List of machines this license is activated on |
+- Execution statistics (avg/total elapsed, CPU, reads, writes)
+- The SQL text
+- The database context
 
-### Deactivating a License
+### Live Tab
 
-Click **Deactivate License** to remove the activation from this machine. SqlPulse will close immediately. You can re-activate with the same key on a new machine or after reinstalling.
+The **Live** tab shows queries currently executing on the server (`sys.dm_exec_requests`). Auto-refresh keeps the list current. Useful for spotting runaway queries in real time.
 
-Manage activations, billing, and account details at [zakmutechnologies.com](https://www.zakmutechnologies.com).
+---
 
-### Theme
+## 13. Permission Manager
 
-Use the **☾ / ☀** button in the header to toggle between light and dark mode at any time. The setting persists across sessions — SqlPulse remembers your last choice on next launch.
+The Permission Manager audits and manages SQL Server logins, server roles, database roles, and object-level permissions.
+
+### Auditing
+
+Select a **login** from the list to see:
+
+- Server roles assigned
+- Database access and roles
+- Object-level permissions (tables, views, procedures, functions)
+
+### Applying Changes
+
+Build a permission change using the action builder:
+
+| Action type | Example |
+|------------|---------|
+| Grant role | Grant `db_datareader` to a login |
+| Revoke role | Remove `db_owner` from a login |
+| Grant permission | `GRANT EXECUTE ON [dbo].[MyProc] TO [user]` |
+| Deny permission | `DENY DELETE ON [dbo].[Orders] TO [user]` |
+
+Click **Preview** to see the exact T-SQL that will run, then **Execute** to apply.
+
+---
+
+## 14. Data Import
+
+The Data Import tool loads data into SQL Server from CSV, Excel, JSON, flat files, and external sources. It handles type inference, column mapping, and bulk insert in a single workflow.
+
+### Source Types
+
+| Source | Formats |
+|--------|---------|
+| **File Upload** | CSV (`.csv`), Excel (`.xlsx`, `.xls`), JSON (`.json`) — up to 100 MB |
+| **Paste Text** | Paste raw CSV or JSON text; auto-detected |
+| **Flat File** | Any text file with a custom delimiter (comma, tab, pipe, semicolon, or custom) |
+| **External Source** | API Call, FTP, SFTP — _Coming soon_ |
+
+### Import Workflow
+
+1. **Choose a data source** — click one of the four source cards
+2. **Upload or paste** your data — for File Upload, drag and drop or click Browse
+3. **Preview** — SqlPulse shows the first 5 rows and infers column types
+4. **Configure** in the right panel:
+   - **Destination** — new table (auto-created) or existing table
+   - **Schema** — defaults to `dbo`
+   - **Write mode** — Append (add rows), Overwrite (truncate first), or Replace (drop & recreate)
+   - **Column mapping** — rename columns, change inferred types, skip columns
+   - **On error** — Skip bad rows and continue, or Abort with full transaction rollback
+5. Click **Import → N tables** — a global progress bar tracks each file/sheet
+6. **Done summary** — shows rows inserted, skipped, and any errors
+
+### Column Mapping
+
+The mapping table shows:
+
+| Column | Purpose |
+|--------|---------|
+| **Source** | Column name from your file |
+| **Target** | Column name in SQL Server (editable) |
+| **Type** | Inferred type (varchar, int, decimal, datetime, bit) — editable |
+| **Sample values** | First few values from that column to verify inference |
+| **Skip** | Exclude this column from the import |
+
+Use **All** / **None** buttons to quickly include or exclude all columns.
+
+### Multi-Sheet Excel and JSON Arrays
+
+- **Excel**: each worksheet becomes a separate import item in the left list
+- **JSON**: SqlPulse finds all importable arrays (including nested ones) and creates one item per array path, with dot-notation labels like `orders.items`
+
+### History
+
+Switch to the **History** tab to see the last 50 imports with source filename, target table, row counts, status, and timestamp.
+
+---
+
+## 15. Test History
+
+The **History** tab inside the SP Stress Tester lists all past test runs and sweeps. Click any run to load its results. Use **Reuse Config** to pre-fill the test setup with that run's settings.
+
+---
+
+## 16. Comparing Runs
+
+Select two test runs in the History tab and click **Compare** to see a side-by-side diff of key metrics: throughput, avg/P95/P99 latency, error rate, and concurrency. Differences are highlighted in green (improvement) or red (regression).
+
+---
+
+## 17. Exporting Results
+
+### Stress Test Results
+
+| Format | How |
+|--------|-----|
+| **PDF** | Click **Export PDF** in the Results panel |
+| **Excel** | Click **Export Excel** in the Results panel |
+
+### Query Editor Results
+
+| Format | How |
+|--------|-----|
+| **CSV** | Click **⬇ CSV** in the results bar |
+| **Excel** | Click **⬇ Excel** in the results bar |
+
+### Sweep Results
+
+Click **Export PDF** in the Sweep Results panel for a report with the throughput/latency chart and tier table.
+
+---
+
+## 18. Settings & License
+
+Click **⚙ Settings** in the header to open the Settings panel.
+
+### License Details
+
+- **License Key** — last 4 digits shown
+- **Status** — Active, Trial, Offline
+- **Activations** — how many machines are using this key vs the maximum
+- **Subscription** — billing interval, next renewal date, cancellation status
+
+### Deactivating
+
+Click **Deactivate License** to release this machine's activation. SqlPulse will close and require a license key on next launch. Use this before switching to a new machine.
 
 ### Updates
 
-SqlPulse checks for updates automatically. When an update is available:
-
-- An **Update available** pill appears in the header
-- A banner appears below the header
-- Click either to open the update modal
-
-From the update modal you can download and install the update. Installation requires an app restart. Critical updates are marked as required and must be installed to continue using SqlPulse.
-
-To manually check for updates, click the version number (e.g. `v2.3.0`) in the header.
+Click the **v2.x.x** version button in the header to check for updates. If one is available, a banner appears. You can download and install without leaving SqlPulse.
 
 ---
 
-## 20. Frequently Asked Questions
+## 19. Frequently Asked Questions
 
-**Does SqlPulse store my database credentials?**  
-Credentials are saved locally on your machine in the application's data directory. They are never transmitted to Zakmu Technologies or any third party.
+**Why can't I connect to my SQL Server?**  
+Check that the server address is correct, the port (default 1433) is reachable, and your credentials are valid. For Windows auth, ensure SqlPulse is running as a domain user with access. Try disabling encryption if you get certificate errors, or enable **Trust server certificate**.
 
-**Does SqlPulse require any installation on the SQL Server?**  
-No. SqlPulse connects as a normal SQL client using the `mssql` driver. No agents, extensions, or server-side components are required.
+**The object browser in Query Editor shows 0 tables.**  
+This usually means the login doesn't have `VIEW DEFINITION` on the database. Try `GRANT VIEW DEFINITION TO [yourlogin]` or connect with a higher-privilege account. Open DevTools (Ctrl+Shift+I) → Console to see the exact SQL error.
 
-**What authentication modes are supported?**  
-SqlPulse supports SQL Server Authentication, Windows Authentication (NTLM), Azure AD Password, Azure AD MFA (interactive browser), and Azure AD Service Principal. See [Authentication Modes](#authentication-modes) for details on each.
+**F5 runs the wrong query.**  
+This was a known bug (fixed in v2.8). Update to the latest version.
 
-**Does SqlPulse work with Azure SQL?**  
-Yes. SqlPulse works with Azure SQL Database and Azure SQL Managed Instance. Enable **Encrypt** in the connection settings for any Azure connection. For Azure AD authentication modes (Password, MFA, Service Principal) this is required.
+**Tests run fine but production is slower — why?**  
+SqlPulse runs from your local machine, so network latency to the SQL Server is included in all timings. Production traffic goes through different network paths. Run SqlPulse from a machine on the same network as the server for the most representative results.
 
-**Does the MFA sign-in prompt appear every time?**  
-Yes, unless you have the Azure CLI installed and are signed in (`az login`). In that case SqlPulse will use the CLI credential silently and no browser window will open.
+**Can I run multiple tests simultaneously?**  
+Each tab is independent. You can open multiple SP Stress Tester tabs and run separate tests, but be aware that concurrent tests compete for the same SQL Server resources.
 
-**I get "Could not connect (sequence)" — what does that mean?**  
-This means SqlPulse reached the server but the TCP/IP handshake failed before authentication. The most common cause is that TCP/IP is disabled on the SQL Server instance — this is the default on fresh SQL Server Express installations.
+**The sweep takes a long time.**  
+Each tier runs `executionsPerTier` calls sequentially per thread. Reduce the number of tiers or executions per tier for faster sweeps. You can stop a sweep early with the **Stop** button without losing completed tiers.
 
-To fix it:
-1. Open **SQL Server Configuration Manager** (search Start, or run `SQLServerManager16.msc` from Win+R — try `15`, `14`, `13` if 16 is not found)
-2. Go to **SQL Server Network Configuration → Protocols for MSSQLSERVER**
-3. Right-click **TCP/IP** → **Enable**
-4. Go to **SQL Server Services** → right-click **SQL Server** → **Restart**
+**My CSV has special characters / non-ASCII text.**  
+SqlPulse assumes UTF-8 encoding for text files. If your CSV uses a different encoding (e.g. Windows-1252), open it in a text editor, save as UTF-8, and re-import.
 
-**I get "Login failed for user"**  
-Check your username and password. For SQL Server Authentication, ensure the login exists and is enabled in SQL Server. For Windows Authentication, use your full domain credentials (`DOMAIN\username` and your Windows password).
+**How do I import data with a custom delimiter?**  
+Select **Flat File** as the source type, choose your delimiter (comma, tab, pipe, semicolon, or enter a custom character), then browse to your file.
 
-**I get a certificate or TLS error**  
-For on-premises SQL Server, uncheck **Encrypt (TLS)** — local servers typically do not have a TLS certificate configured. For Azure SQL, keep Encrypt enabled but also check **Trust server certificate** if you are using a private endpoint or self-signed certificate.
+**Can I save queries permanently?**  
+Yes — press **Ctrl+S** in the Query Editor or click **💾 Save** in the toolbar. Queries are stored in SqlPulse's local SQLite database and appear in the **Saved Queries** section of the object browser. They persist across sessions.
 
-**Connection times out**  
-Check that the server name and port (default 1433) are correct, and that any firewall between SqlPulse and the SQL Server allows inbound TCP connections on that port. For Azure SQL, ensure your public IP is added to the Azure SQL firewall rules (SqlPulse shows your outbound IP in the connection panel).
+**Can I pop the Query Editor into a second monitor?**  
+Yes — drag the Query Editor tab outside the main SqlPulse window. It detects the cursor leaving the window boundary and opens the tool in a new independent window that you can position anywhere.
 
-**The Active Blockers tool says "VIEW SERVER STATE permission required"**  
-The login you connected with does not have `VIEW SERVER STATE`. Ask your DBA to grant it: `GRANT VIEW SERVER STATE TO [your_login];`. Without it, SqlPulse cannot query the blocking DMVs.
+**What permissions does SqlPulse need?**  
+At minimum, the login needs:
+- `EXECUTE` on stored procedures to test them
+- `VIEW DATABASE STATE` for some DMV-based features (Wait Stats, SP Analyzer)
+- `ALTER ANY CONNECTION` to kill sessions in Active Blockers
+- `VIEW DEFINITION` for the Query Editor object browser
 
-**The Wait Stats tool says "VIEW SERVER STATE permission required"**  
-Same as above — `VIEW SERVER STATE` is required to read `sys.dm_os_wait_stats`. Run `GRANT VIEW SERVER STATE TO [your_login];` to enable the tool.
-
-**Wait Stats shows 0% for all categories**  
-This can happen when a single background wait type (like `SOS_WORK_DISPATCHER`) dominates at 90%+, leaving other categories with less than 0.5% each — which rounds to 0. It means your server is mostly idle or running internal housekeeping. The actual query-visible waits (I/O, Locks, CPU) are proportionally small, which is a good sign.
-
-**Wait Stats values seem very large**  
-Wait stats are cumulative since the last SQL Server restart. On a server that has been running for weeks or months, the values naturally accumulate to very large numbers. Focus on the **percentage share** and the **relative ranking** rather than the raw millisecond values.
-
-**I killed the wrong SPID — what happens?**  
-SQL Server immediately rolls back any open transaction on the killed session and closes the connection. The application owning that connection will receive a connection error. If the session had an open transaction, all uncommitted changes are rolled back.
-
-**How many executions can a single test run?**  
-Up to 100,000 executions per test run.
-
-**How many results are stored per run?**  
-SqlPulse stores the last 1,000 individual execution records per run for display in the executions table. All metrics (including percentiles and throughput) are calculated from the full execution set.
-
-**What does it mean when P99 is much higher than P50?**  
-It means most executions are fast, but a small minority are significantly slower. A high P99/P50 ratio typically indicates intermittent lock contention, blocking queries, parameter-sensitive execution plans, or occasional cache misses. The Insights panel will flag this automatically and suggest likely causes.
-
-**Can I run a sweep and a regular test at the same time?**  
-No. One test can run at a time. The Sweep tab runs each tier sequentially using the same test infrastructure.
-
-**What happens if I stop a sweep mid-way?**  
-Any tiers that completed before the stop are preserved in the results panel. The sweet spot is recalculated based on the tiers available.
-
-**Is my data safe if the app crashes during a test?**  
-Any run that reached a terminal state (completed, stopped) before the crash is persisted to disk and will appear in History. A run that was actively in progress at the time of a crash will not be saved.
+For Data Import: `INSERT` on target tables, `CREATE TABLE` if creating new tables.
 
 ---
 
-## Support
-
-For assistance, contact the Zakmu Technologies support team:
-
-- **Email:** support@zakmutechnologies.com
-- **Web:** [zakmutechnologies.com/contact](https://www.zakmutechnologies.com/contact)
-
-Please include your SqlPulse version number (visible in the header) and a description of the issue when contacting support.
-
----
-
-*SqlPulse is a product of Zakmu Technologies. All rights reserved.*
+*SqlPulse is developed by Zakmu Technologies. For support, visit [zakmutechnologies.com/contact](https://www.zakmutechnologies.com/contact).*
